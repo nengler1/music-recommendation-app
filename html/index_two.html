@@ -15,7 +15,7 @@
         <p>nothing much here tbh</p>
         <p id="slight">(or is there?)</p>
     </div>
-    <h2>Create "Dancer"</h2>
+    <h2>Create Dancer</h2>
     <div class="form-container">
         <form action="/api" method="POST">
             <label for="who">Who:</label>
@@ -24,7 +24,21 @@
             <input name="x" id="x" />
             <label for="y">y:</label>
             <input name="y" id="y" />
-            <input type="submit" value="Submit!"/>
+            <input type="submit" value="Create"/>
+        </form>
+    </div>
+    <h2>Get Dancer</h2>
+    <div class="form-container">
+        <form action="/api" method="GET">
+            <label for="who">Who:</label>
+            <input name="who" id="who" />
+            <input type="submit" value="Sumbit"/>
+        </form>
+    </div>
+    <h2>Get All Dancers</h2>
+    <div class="form-container">
+        <form action="/api" method="GET">
+            <input type="submit" value="Find All"/>
         </form>
     </div>
 
