@@ -67,3 +67,32 @@ img:hover {
         background-position: 0% 50%;
     }
 }
+
+.form-container {
+    display: block;
+    padding-bottom: 2em;
+}
+
+label {
+    font-size: large;
+    font-weight: 500;
+}
+
+input {
+    height: 30px;
+    border-radius: 5px;
+}
+
+input[type=submit] {
+    font-size: large;
+    width: 100px;
+    height: 37px;
+    border-radius: 5px;
+    background-color: gray;
+    color: white;
+    transition: 0.3s;
+}
+
+input[type=submit]:hover {
+    background-color: #0082ba;
+}
