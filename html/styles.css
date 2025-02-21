@@ -96,3 +96,18 @@ input[type=submit] {
 input[type=submit]:hover {
     background-color: #078937;
 }
+
+.spotify-btn{
+    padding: 1px 6px;
+    border: 3px outset black;
+    border-radius: 3px;
+    color: white;
+    background-color: gray;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.spotify-btn:hover{
+    background-color: #53bc7a;
+    color: black;
+}
