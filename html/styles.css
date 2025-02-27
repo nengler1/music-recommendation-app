@@ -97,17 +97,36 @@ input[type=submit]:hover {
     background-color: #078937;
 }
 
-.spotify-btn{
-    padding: 1px 6px;
-    border: 3px outset black;
-    border-radius: 3px;
-    color: white;
-    background-color: gray;
-    text-decoration: none;
+.button#spotify-btn{
+    display: inline-block;
+    margin-top: 15px;
     transition: background-color 0.3s;
 }
 
-.spotify-btn:hover{
+.button#spotify-btn:hover{
     background-color: #53bc7a;
     color: black;
+}
+
+div.spotify-track {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 0px));
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 20px;
+    padding: 10px;
+    max-width: 100%;
+}
+
+.track-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    width: 500px;
+    padding: 20px;
+    border: 2px solid gray;
+    border-radius: 8px;
+    box-shadow: 0px 0px 5px rgb(141, 141, 141);
+    background-color: white;
 }

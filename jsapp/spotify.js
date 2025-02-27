@@ -22,17 +22,17 @@ app.get('/login', (req, res) => {
     res.redirect(spotifyAPI.createAuthorizeURL(scopes))
 })
 
-app.get('/spotify.html', (req, res) => {
+app.get('/callback', async (req, res) => {
     console.log("REDIRECTED")
     const error = req.query.error
     const code = req.query.code
-    const state = req.query.state
 
     if(error){
         console.error('Error:', error)
         res.send(`Error: ${error}`)
         return
     }
+    
     spotifyAPI.authorizationCodeGrant(code).then(data => {
         const accessToken = data.body.access_token
         const refreshToken = data.body.refresh_token
@@ -44,20 +44,14 @@ app.get('/spotify.html', (req, res) => {
         console.log('Access Token:', accessToken)
         console.log('Refresh Token:', refreshToken)
 
-        res.send("Success!")
-
-        setInterval(async() => {
-            const data = await spotifyAPI.refreshAccessToken()
-            const accessTokenRefreshed = data.body['access_token']
-            spotifyAPI.setAccessToken(accessTokenRefreshed)
-        }, (expiresIn / 2) * 1000)
+        res.redirect(`/spotify.html?access_token=${accessToken}`)
     }).catch(error => {
         console.error('Error:', error)
         res.send("Error getting token")
     })
 })
 
-app.get('/me', (req, res) => {
+app.get('/spotify/me', (req, res) => {
     spotifyAPI.getMe().then(data => {
         console.log('Information:', data.body)
         res.send(data.body)
@@ -82,7 +76,7 @@ app.get('/me/top-tracks', (req, res) => {
         res.send(tracks)
     }).catch(error => {
         console.error('Error:', error)
-        res.send("Error has occured:", error)
+        res.status("Error has occured:").send(error)
     })
 })
 
