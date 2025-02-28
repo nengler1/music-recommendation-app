@@ -94,7 +94,7 @@ input {
     border-radius: 5px;
 }
 
-input[type=submit] {
+input[type=submit], button {
     font-size: large;
     width: 100px;
     height: 37px;
@@ -163,3 +163,6 @@ html#spotify-html {
     background-color: #1399a7;
 }
 
+.dancer {
+    font-size: x-large;
+}

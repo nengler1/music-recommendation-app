@@ -36,9 +36,7 @@ const handleRequest = (req, res) => {
 			body += data
 		})
 		req.on('end', () => {
-			const params = Object.fromEntries(body.split('&').map(
-				(param) => param.split('=')
-			))
+			const params = Object.fromEntries(new URLSearchParams(body))
 
 			if(!params.who || !params.x || !params.y){
 				return sendResponse(res, {error: "Missing parameters."}, 400)
@@ -55,12 +53,10 @@ const handleRequest = (req, res) => {
 			body += data
 		})
 		req.on('end', () => {
-			const params = Object.fromEntries(body.split('&').map(
-				(param) => param.split('=')
-			))
+			const params = Object.fromEntries(new URLSearchParams(body))
 			console.log(params)
 			const index = dancers.findIndex(name => name.who === params.who)
-			if (index != -1) {
+			if (index !== -1) {
 				console.log("WE HAVE A DANCER")
 				dancers[index] = params
 				sendResponse(res, dancers, 201)
