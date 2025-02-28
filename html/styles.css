@@ -149,6 +149,17 @@ html#spotify-html {
     color: white;
 }
 
-input[value="Login"]:hover {
+#auth-btn {
+    font-size: large;
+    width: 100px;
+    height: 37px;
+    border-radius: 5px;
+    background-color: gray;
+    color: white;
+    transition: 0.3s;
+}
+
+#auth-btn:hover {
     background-color: #1399a7;
 }
+

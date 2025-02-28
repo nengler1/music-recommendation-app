@@ -11,13 +11,12 @@
 </head>
 <body>
     <h1>Spotify Testing API</h1>
-    <form action="/login">
-        <input type="submit" value="Login"/>
-    </form>
+   
+    <button id="auth-btn" class="button"></button>
     <button class="button" id="get-artists-btn" onclick="getTopArtists()">Get Top Artists</button>
     <div class="spotify-track">
     </div>
-    <a href="index.html" class="button">Click here to go back to the first page</a><br>
-    <script src="top_artists.js"></script>
+    <a href="/index" class="button">Click here to go back to the first page</a><br>
+    <script src="fetch_api.js"></script>
 </body>
 </html>

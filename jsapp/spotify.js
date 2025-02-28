@@ -62,17 +62,44 @@ app.get('/callback', async (req, res) => {
     }
 })
 
-app.get('/spotify/me', (req, res) => {
-    spotifyAPI.getMe().then(data => {
-        console.log('Information:', data.body)
-        res.send(data.body)
-    }).catch(error => {
-        console.error('Error:', error)
-        res.send("Error has occured:", error)
-    })
+
+app.get('/api/me/status', (req, res) => {
+    if (req.session.accessToken){
+        res.json({loggedIn: true})
+    } else {
+        res.json({loggedIn: false})
+    }
 })
 
-app.get('/spotify/me/top-tracks', async (req, res) => {
+async function fetchWebApi(endpoint, accessToken){
+    try {
+        const response = await fetch(`https://api.spotify.com/${endpoint}`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        })
+        return await response.json()
+    } catch (error) {
+        console.error("Error:", error)
+        res.status(500).json({ error: 'Internal server error' })
+    }
+}
+
+app.get('/api/me/profile', async (req, res) => {
+    const accessToken = req.session.accessToken
+    if(!accessToken){
+        return res.status(401).json({ message: 'Not logged in'})
+    }
+
+    const profile = await fetchWebApi('v1/me', accessToken)
+    const details = {
+        name: profile.display_name,
+        profileImage: profile.images[0]?.url || '',
+        spotifyProfileLink: profile.href,
+        followers: profile.followers?.total
+    }
+    res.json(details)
+})
+
+app.get('/api/me/top-tracks', async (req, res) => {
     const {time_range} = req.query
 
     const accessToken = req.session.accessToken
@@ -101,8 +128,8 @@ app.get('/spotify/me/top-tracks', async (req, res) => {
         console.log("Sent Tracks!")
         res.json(tracks)
     } catch (error) {
-        console.error("Error fetching top tracks:", error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error("Error fetching top tracks:", error)
+        res.status(500).json({ error: 'Internal server error' })
     }
 })
 
