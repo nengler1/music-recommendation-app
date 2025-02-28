@@ -1,7 +1,10 @@
 * {
-    background-color: rgb(240, 240, 240);
     font-family: "Inter", sans-serif;
     text-align: center;
+}
+
+html {
+    background-color: rgb(240, 240, 240);
 }
 
 .front-page{
@@ -14,10 +17,18 @@ img {
     object-fit: cover;
     border-radius: 30px;
     box-shadow: 0 0 10px black;
+}
+
+#willow-img {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 30px;
+    box-shadow: 0 0 10px black;
     transition: 0.3s;
 }
 
-img:hover {
+#willow-img:hover {
     width: 360px;
     height: 300px;
 }
@@ -127,6 +138,17 @@ div.spotify-track {
     padding: 20px;
     border: 2px solid gray;
     border-radius: 8px;
-    box-shadow: 0px 0px 5px rgb(141, 141, 141);
+    box-shadow: 0px 0px 5px black;
     background-color: white;
+    color: black;
+    font-size: large;
+}
+
+html#spotify-html {
+    background-color: #35374f;
+    color: white;
+}
+
+input[value="Login"]:hover {
+    background-color: #1399a7;
 }

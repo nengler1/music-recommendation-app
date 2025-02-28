@@ -74,7 +74,6 @@ app.get('/spotify/me', (req, res) => {
 
 app.get('/spotify/me/top-tracks', async (req, res) => {
     const {time_range} = req.query
-    console.log("QUERY:", time_range)
 
     const accessToken = req.session.accessToken
     if(!accessToken){
@@ -105,21 +104,6 @@ app.get('/spotify/me/top-tracks', async (req, res) => {
         console.error("Error fetching top tracks:", error);
         res.status(500).json({ error: 'Internal server error' });
     }
-    
-    //spotifyAPI.getMyTopTracks({time_range: time_range}).then(data => {
-    //    const tracks = data.body.items.map(track => ({
-    //        artist: track.artists.map(artist => artist.name).join(', '),
-    //        name: track.name,
-    //        album: track.album.name,
-    //        albumImage: track.album.images[0]?.url,
-    //        popularity: track.popularity
-    //    }))
-    //    console.log("Sent Tracks!")
-    //    res.send(tracks)
-    //}).catch(error => {
-    //    console.error('Error:', error)
-    //    res.status("Error has occured:").send(error)
-    //})
 })
 
 app.listen(port, () => {
