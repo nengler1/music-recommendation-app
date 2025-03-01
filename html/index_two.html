@@ -15,9 +15,10 @@
         <p>nothing much here tbh</p>
         <p id="slight">(or is there?)</p>
     </div>
-    <h2>Create Dancer</h2>
+
+    <h2>Create Dancer (POST)</h2>
     <div class="form-container">
-        <form action="/api" method="POST">
+        <form onsubmit="postDancer(event)"">
             <label for="who">Who:</label>
             <input name="who" id="who" />
             <label for="x">x:</label>
@@ -27,23 +28,47 @@
             <input type="submit" value="Create"/>
         </form>
     </div>
-    <h2>Get Dancer</h2>
+
+    <h2>Get Dancer (GET)</h2>
     <div class="form-container">
-        <form action="/api" method="GET">
+        <form onsubmit="getDancer(event)">
             <label for="who">Who:</label>
             <input name="who" id="who" />
             <input type="submit" value="Sumbit"/>
         </form>
     </div>
-    <h2>Get All Dancers</h2>
+
+    <h2>Get All Dancers (GET)</h2>
     <div class="form-container">
-        <form action="/api" method="GET">
-            <input type="submit" value="Find All"/>
+        <button class="button" onclick="listDancers()">Find All</button>
+        <br>
+        <ul id="dancers-list"></ul>
+    </div>
+
+    <h2>Update Dancer (PUT)</h2>
+    <div class="form-container">
+        <form onsubmit="updateDancer(event)">
+            <label for="who">Who:</label>
+            <input name="who" id="who" />
+            <label for="x">x:</label>
+            <input name="x" id="x" />
+            <label for="y">y:</label>
+            <input name="y" id="y" />
+            <input type="submit" value="Sumbit"/>
+        </form>
+    </div>
+
+    <h2>Delete Dancer (DELETE)</h2>
+    <div class="form-container">
+        <form onsubmit="deleteDancer(event)">
+            <label for="who">Who:</label>
+            <input name="who" id="who" />
+            <input type="submit" value="Sumbit"/>
         </form>
     </div>
 
     <a href="index.html" class="button">Click here to go back to the first page</a><br>
     <a href="spotify.html" class="button" id="spotify-btn">Spotify API Testing</a>
-    <script src="api.js"></script>
+    <script src="basicapi.js"></script>
 </body>
 </html>
