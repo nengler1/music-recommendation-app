@@ -8,6 +8,14 @@ const SpotifyWebAPI = require('spotify-web-api-node')
 const app = express()
 const port = 3000
 
+const session = require('express-session')
+
+app.use(session({
+	secret: 'c3BvdGlmeWFwaWtleQ==',
+	resave: false,
+	saveUninitialized: true
+}))
+
 const dancers = []
 
 // middleware to parse "application/x-www-form-urlencoded"
@@ -18,7 +26,7 @@ app.use(express.json())
 
 // Retrieve all dancers or filter by query params
 app.get('/api', (req, res) => {
-    const { who, x, y } = req.query
+    const {who, x, y} = req.query
 
     console.log("PATH /api")
     console.log("QUERY", req.query)
@@ -30,51 +38,51 @@ app.get('/api', (req, res) => {
         if (filteredDancers.length > 0) {
             return res.status(200).json(filteredDancers)
         } else {
-            return res.status(404).json({ error: "Dancer not found." })
+            return res.status(404).json({error: "Dancer not found"})
         }
     }
 
     return res.status(200).json(dancers) // No query params, return all dancers
-});
+})
 
 // POST add new dancer
 app.post('/api', (req, res) => {
     console.log("- WOAH IN POST")
-    const { who, x, y } = req.body
+    const {who, x, y} = req.body
 
     if (!who || !x || !y) {
-        return res.status(400).json({ error: "Missing parameters." })
+        return res.status(400).json({error: "Missing parameters"})
     }
 
-    dancers.push({ who, x, y })
+    dancers.push({who, x, y})
     return res.status(201).json(dancers)
-});
+})
 
 // PUT update dancer
 app.put('/api', (req, res) => {
     console.log("- IN PUT!!")
-    const { who, x, y } = req.body
+    const {who, x, y} = req.body
 
     if (!who || !x || !y) {
-        return res.status(400).json({ error: "Missing parameters." })
+        return res.status(400).json({error: "Missing parameters"})
     }
 
     const index = dancers.findIndex(dancer => dancer.who === who)
     if (index !== -1) {
-        dancers[index] = { who, x, y }
+        dancers[index] = {who, x, y}
         return res.status(201).json(dancers)
     } else {
-        return res.status(404).json({ error: "Dancer not found." })
+        return res.status(404).json({error: "Dancer not found"})
     }
-});
+})
 
 // DELETE remove dancer
 app.delete('/api', (req, res) => {
     console.log("- IN DELETE!!")
-    const { who } = req.body
+    const {who} = req.body
 
     if (!who) {
-        return res.status(400).json({ error: "Missing 'who' parameter." })
+        return res.status(400).json({error: "Missing 'who' parameter"})
     }
 
     const index = dancers.findIndex(dancer => dancer.who === who)
@@ -82,9 +90,9 @@ app.delete('/api', (req, res) => {
         dancers.splice(index, 1)
         return res.status(200).json(dancers)
     } else {
-        return res.status(404).json({ error: "Dancer not found." })
+        return res.status(404).json({error: "Dancer not found."})
     }
-});
+})
 
 // -- SPOTIFY INTEGRATION --
 
@@ -94,7 +102,7 @@ const spotifyAPI = new SpotifyWebAPI({
     redirectUri: process.env.REDIRECT_URI
 })
 
-app.get('/login', (req, res) => {
+app.get('/api/login', (req, res) => {
 	const scopes = [
 		'user-read-private',
 		'user-read-email',
@@ -105,15 +113,7 @@ app.get('/login', (req, res) => {
 	res.redirect(spotifyAPI.createAuthorizeURL(scopes))
 })
 
-const session = require('express-session')
-
-app.use(session({
-	secret: 'c3BvdGlmeWFwaWtleQ==',
-	resave: false,
-	saveUninitialized: true
-}))
-
-app.get('/callback', async (req, res) => {
+app.get('/api/callback', async (req, res) => {
 	console.log("REDIRECTED")
 	const error = req.query.error
 	const code = req.query.code

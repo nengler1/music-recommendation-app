@@ -20,7 +20,7 @@ async function changeLogin(){
     } else {
         authButton.innerText = 'Log in'
         authButton.onclick = () => {
-            window.location.href = '/login'
+            window.location.href = '/api/login'
         }
     }
 }
