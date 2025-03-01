@@ -96,8 +96,6 @@ input {
 
 input[type=submit], button {
     font-size: large;
-    width: 100px;
-    height: 37px;
     border-radius: 5px;
     background-color: gray;
     color: white;
@@ -165,4 +163,8 @@ html#spotify-html {
 
 .dancer {
     font-size: x-large;
+}
+
+.delete:hover {
+    background-color: red;
 }

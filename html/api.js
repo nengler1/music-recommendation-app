@@ -2,18 +2,19 @@ async function postDancer(event){
     event.preventDefault()
     const formData = new FormData(event.target)
     console.log("POST FORM DATA:", formData)
-    fetch(await '/api', {
+    await fetch('/api', {
         method: 'POST',
         body: new URLSearchParams(formData)
-    })
-        .then(async res => {
+    }).then(async res => {
             const data = await res.json()
             console.log(data)
         })
 }
 
 async function listDancers(){
-    fetch(await '/api', { method: 'GET'})
+    await fetch('/api', { 
+            method: 'GET'
+        })
         .then(body => body.json())
         .then(dancers => {
             const dancers_list = document.getElementById("dancers-list")
@@ -37,11 +38,10 @@ async function getDancer(event){
     event.preventDefault()
     const formData = new FormData(event.target)
     console.log("GET FORM DATA:", formData)
-    fetch(await '/api', {
+    await fetch('/api', {
         method: 'GET',
         body: new URLSearchParams(formData)
-    })
-        .then(async res => {
+    }).then(async res => {
             const data = await res.json()
             console.log(data)
         })
@@ -51,11 +51,10 @@ async function deleteDancer(event) {
     event.preventDefault()
     const formData = new FormData(event.target)
     console.log("DELETE FORM DATA:", formData)
-    fetch(await '/api', {
+    await fetch('/api', {
         method: 'DELETE',
         body: new URLSearchParams(formData)
-    })
-        .then(async res => {
+    }).then(async res => {
             const data = await res.json()
             console.log(data)
         })
@@ -65,11 +64,10 @@ async function updateDancer(event) {
     event.preventDefault()
     const formData = new FormData(event.target)
     console.log("PUT FORM DATA:", formData)
-    fetch(await '/api', {
+    await fetch('/api', {
         method: 'PUT',
         body: new URLSearchParams(formData)
-    })
-        .then(async res => {
+    }).then(async res => {
             const data = await res.json()
             console.log(data)
         })
