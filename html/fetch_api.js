@@ -25,11 +25,18 @@ async function changeLogin(){
     }
 }
 
-function getProfile(){
-    fetch('/api/me/profile')
+async function getProfile(){
+    await fetch('/api/me/profile')
         .then(response => response.json())
-        .then(async details => {
+        .then(details => {
+            const profileDiv = document.getElementById('profile')
             
+            profileDiv.innerHTML = `
+                <h3><strong>Username:</strong> ${details.name}</h3>
+                <img src="${details.profileImage}" alt=${details.name} Image>
+                <a href="${details.spotifyProfileLink}"><strong>Link to Spotify Profile</strong></h3>
+                <h3><strong>Number of Followers:</strong> ${details.followers}</h3>
+            `
         })
 }
 
@@ -183,3 +190,4 @@ async function deleteTrack(playlistID, trackID){
 }
 
 changeLogin()
+getProfile()
