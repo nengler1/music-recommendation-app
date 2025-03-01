@@ -15,7 +15,7 @@ async function changeLogin(){
     if(loggedIn){
         authButton.innerText = 'Profile'
         authButton.onclick = () => {
-            window.location.href = '/profile'
+            window.location.href = '/profile.html'
         }
     } else {
         authButton.innerText = 'Log in'
