@@ -33,8 +33,8 @@ async function getProfile(){
             
             profileDiv.innerHTML = `
                 <h3><strong>Username:</strong> ${details.name}</h3>
-                <img src="${details.profileImage}" alt=${details.name} Image>
-                <a href="${details.spotifyProfileLink}"><strong>Link to Spotify Profile</strong></h3>
+                <img src="${details.profileImage}" alt=${details.name} Image><br>
+                <a href="${details.spotifyProfileLink}"><strong>Link to Spotify Profile</strong></a>
                 <h3><strong>Number of Followers:</strong> ${details.followers}</h3>
             `
         })

@@ -5,6 +5,11 @@
 
 html {
     background-color: rgb(240, 240, 240);
+    margin: 0;
+}
+
+body {
+    margin: 0;
 }
 
 .front-page{
@@ -143,22 +148,7 @@ div.spotify-track {
 }
 
 html#spotify-html {
-    background-color: #35374f;
-    color: white;
-}
-
-#auth-btn {
-    font-size: large;
-    width: 100px;
-    height: 37px;
-    border-radius: 5px;
-    background-color: gray;
-    color: white;
-    transition: 0.3s;
-}
-
-#auth-btn:hover {
-    background-color: #1399a7;
+    background-color: #e1e1e1;
 }
 
 .dancer {
@@ -167,4 +157,67 @@ html#spotify-html {
 
 .delete:hover {
     background-color: red;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(rgb(26, 26, 26), #383838);
+    padding: 10px 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.nav-logo img {
+    padding-left: 15px;
+    height: 8em;
+    width: auto;
+    box-shadow: 0 0;
+}
+
+.nav-links {
+    display: flex;
+    gap: 25px;
+}
+
+.nav-links a {
+    font-size: x-large;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    text-shadow: 0 0 10px black;
+}
+
+.nav-links a:hover {
+    text-decoration: underline;
+}
+
+.nav-link-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font: inherit;
+    font-weight: bold;
+    font-size: x-large;
+    text-shadow: 0 0 10px black;
+}
+
+.nav-link-btn:hover {
+    text-decoration: underline;
+}
+
+/* Mobile friendly navbar */
+@media (max-width: 600px) {
+    nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .nav-links {
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
 }

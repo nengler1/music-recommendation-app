@@ -173,7 +173,7 @@ app.get('/api/me/profile', async (req, res) => {
 	const details = {
 		name: profile.display_name,
 		profileImage: profile.images[0]?.url || '',
-		spotifyProfileLink: profile.href,
+		spotifyProfileLink: profile.external_urls?.spotify,
 		followers: profile.followers?.total
 	}
 	res.json(details)

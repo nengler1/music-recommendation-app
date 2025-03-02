@@ -10,13 +10,24 @@
     <title>Melofy - Spotify Testing</title>
 </head>
 <body>
+
+    <nav>
+        <div class="nav-logo">
+            <a href="spotify.html"><img src="melofy-logo.png" alt="Melofy Logo"></a>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <button id="auth-btn" class="nav-link-btn"></button>
+            <a href="create_playlist.html">Create Playlist</a>
+        </div>
+    </nav>
+
     <h1>Spotify Testing API</h1>
    
-    <button id="auth-btn" class="button"></button>
     <button class="button" id="get-artists-btn" onclick="getTopArtists()">Get Top Artists</button>
     <div class="spotify-track">
     </div>
-    <a href="create_playlist.html" class="button">Create Playlist</a>
+    
     <a href="index.html" class="button">Click here to go back to the first page</a><br>
     <script src="fetchapi.js"></script>
 </body>
