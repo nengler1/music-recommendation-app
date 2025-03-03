@@ -18,7 +18,7 @@
 
     <h2>Create Dancer (POST)</h2>
     <div class="form-container">
-        <form onsubmit="postDancer(event)">
+        <form onsubmit="fetchAPI(event, 'POST')">
             <label for="post-who">Who:</label>
             <input name="who" id="post-who">
             <label for="post-x">x:</label>
@@ -49,7 +49,7 @@
 
     <h2>Update Dancer (PUT)</h2>
     <div class="form-container">
-        <form onsubmit="updateDancer(event)">
+        <form onsubmit="fetchAPI(event, 'PUT')">
             <label for="put-who">Who:</label>
             <input name="who" id="put-who">
             <label for="put-x">x:</label>
@@ -62,7 +62,7 @@
 
     <h2>Delete Dancer (DELETE)</h2>
     <div class="form-container">
-        <form onsubmit="deleteDancer(event)">
+        <form onsubmit="fetchAPI(event, 'DELETE')">
             <label for="del-who">Who:</label>
             <input name="who" id="del-who">
             <input type="submit" value="Sumbit">
