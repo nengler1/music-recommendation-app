@@ -34,7 +34,7 @@ app.get('/api', (req, res) => {
     if (who || x || y) {
         const filteredDancers = dancers.filter(item =>
             item.who === who || item.x === x || item.y === y
-        );
+        )
         if (filteredDancers.length > 0) {
             return res.status(200).json(filteredDancers)
         } else {
@@ -173,7 +173,7 @@ app.get('/api/me/profile', async (req, res) => {
 	const details = {
 		name: profile.display_name,
 		profileImage: profile.images[0]?.url || '',
-		spotifyProfileLink: profile.external_urls?.spotify,
+		spotifyProfileLink: profile.href,
 		followers: profile.followers?.total
 	}
 	res.json(details)

@@ -9,6 +9,11 @@ async function postDancer(event){
             const data = await res.json()
             console.log(data)
         })
+        .catch(error => {
+            console.error("An error has occured:", error)
+        })
+    
+    listDancers()
 }
 
 async function listDancers(){
@@ -17,7 +22,7 @@ async function listDancers(){
         })
         .then(body => body.json())
         .then(dancers => {
-            const dancers_list = document.getElementById("dancers-list")
+            const dancers_list = document.getElementById("all-dancers-list")
             dancers_list.innerHTML = ''
 
             if (dancers_list.length === 0){
@@ -32,18 +37,39 @@ async function listDancers(){
                 dancers_list.appendChild(li)
             })
         })
+        .catch(error => {
+            console.error("An error has occured:", error)
+        })
 }
 
 async function getDancer(event){
     event.preventDefault()
     const formData = new FormData(event.target)
     console.log("GET FORM DATA:", formData)
-    await fetch('/api', {
+    const who = new URLSearchParams(formData).toString()
+    await fetch('/api' + `?${who}`, {
         method: 'GET',
-        body: new URLSearchParams(formData)
     }).then(async res => {
             const data = await res.json()
             console.log(data)
+
+            const dancer_list = document.getElementById("dancer-list")
+            dancer_list.innerHTML = ''
+
+            if (dancer_list.length === 0 || data.error){
+                dancer_list.innerHTML = '<li>Dancer not found</li>'
+                return
+            }
+
+            data.forEach(dancer => {
+                const li = document.createElement('li')
+                li.classList.add('dancer')
+                li.innerText = `Name: ${dancer.who} | X: ${dancer.x} | Y: ${dancer.y}`
+                dancer_list.appendChild(li)
+            })
+        })
+        .catch(error => {
+            console.error("An error has occured:", error)
         })
 }
 
@@ -58,6 +84,9 @@ async function deleteDancer(event) {
             const data = await res.json()
             console.log(data)
         })
+        .catch(error => {
+            console.error("An error has occured:", error)
+        })
 }
 
 async function updateDancer(event) {
@@ -71,6 +100,7 @@ async function updateDancer(event) {
             const data = await res.json()
             console.log(data)
         })
+        .catch(error => {
+            console.error("An error has occured:", error)
+        })
 }
-
-listDancers()
