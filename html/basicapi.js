@@ -87,6 +87,7 @@ async function deleteDancer(event) {
         .catch(error => {
             console.error("An error has occured:", error)
         })
+    listDancers()
 }
 
 async function updateDancer(event) {
@@ -103,4 +104,5 @@ async function updateDancer(event) {
         .catch(error => {
             console.error("An error has occured:", error)
         })
+    listDancers()
 }
