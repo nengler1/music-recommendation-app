@@ -34,7 +34,7 @@ app.get('/api', (req, res) => {
     if (who || x || y) {
         const filteredDancers = dancers.filter(item =>
             item.who === who || item.x === x || item.y === y
-        );
+        )
         if (filteredDancers.length > 0) {
             return res.status(200).json(filteredDancers)
         } else {
