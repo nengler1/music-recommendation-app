@@ -1,4 +1,5 @@
 const artist_div = document.querySelector('.spotify-track')
+const navbar = document.querySelector('.nav-links')
 
 async function checkLoginStatus(){
     return fetch('/api/me/status')
@@ -17,6 +18,11 @@ async function changeLogin(){
         authButton.onclick = () => {
             window.location.href = '/profile.html'
         }
+        const create_playlist = document.createElement('a')
+        create_playlist.href = 'create_playlist.html'
+        create_playlist.textContent = 'Create Playlist'
+
+        navbar.appendChild(create_playlist)
     } else {
         authButton.innerText = 'Log in'
         authButton.onclick = () => {
@@ -77,6 +83,8 @@ function getTopArtists(){
         )
 }
 
+// playlists
+
 async function listPlaylists(){
     await fetch('/api/playlists', {
         method: 'GET',
@@ -89,11 +97,18 @@ async function listPlaylists(){
                         <h2>Title: ${playlist.title}</h2>
                         <button class="delete" onclick="deletePlaylist('${playlist.id}')">Delete</button>
                         <button class="button" onclick="getPlaylist('${playlist.id}')">View Tracks</button>
-                        <form onsubmit="addTrack(event, '${playlist.id}')">
-                            <input type="text" placeholder="Track name" name="trackName" required />
-                            <input type="text" placeholder="Artist name" name="artistName" required />
-                            <button type="submit">Add Track</button>
+
+                        <!-- Search and add song -->
+                        <form onsubmit="getSong(event, '${playlist.id}')">
+                            <input type="text" placeholder="Search for a song..." name="search-track" required />
+                            <button type="submit">Search</button>
                         </form>
+
+                        <select id="song-dropdown-${playlist.id}">
+                            <option value="">Select a song</option>
+                        </select>
+                        <button onclick="addSong('${playlist.id}')">Add to Playlist</button>
+
                         <div class="track-list" id="tracks-${playlist.id}"></div>
                     </div>
                 </div>
@@ -112,7 +127,6 @@ async function createPlaylist(event){
         body: JSON.stringify({title})
     }).then(async res => {
             const data = await res.json()
-            console.log(data)
             listPlaylists()
         })
 }
@@ -131,7 +145,7 @@ async function getPlaylist(id){
             } else {
                 tracksDiv.innerHTML = playlist.tracks.map(track => `
                     <div>
-                        ${track.name} by ${track.artist}
+                        ${track.name} - ${track.artist}
                         <button class="delete" onclick="deleteTrack('${id}', '${track.id}')">Delete Track</button>
                     <div>
                 `).join('')
@@ -162,23 +176,57 @@ async function deletePlaylist(id){
     listPlaylists()
 }
 
-async function addTrack(event, id) {
+// tracks
+
+async function getSong(event, playlistID){
     event.preventDefault()
     const formData = new FormData(event.target)
-    const trackName = formData.get('trackName').toString().trim()
-    const artistName = formData.get('artistName').toString().trim()
+    const search = formData.get('search-track').toString().trim()
 
-    if(!trackName || !artistName) {
-        alert('Both track and artist names are required')
+    await fetch(`/api/search-tracks/${encodeURIComponent(search)}`, {
+        method: 'GET',
+    })
+    .then(async res => await res.json())
+    .then(songs => {
+        const dropdown = document.getElementById(`song-dropdown-${playlistID}`)
+        dropdown.innerHTML = '<option value="">Select a song</option>'
+
+        songs.forEach(song => {
+            const songOption = document.createElement("option")
+            songOption.value = JSON.stringify(song)
+            songOption.innerText = `${song.name} - ${song.artist}`
+            dropdown.appendChild(songOption)
+        })
+    }).catch(error => {
+        console.error("Error fetching songs:", error)
+    })
+}
+
+async function addSong(playlistID) {
+    const dropdown = document.getElementById(`song-dropdown-${playlistID}`)
+    const selectedOption = dropdown.options[dropdown.selectedIndex]
+
+    if(!selectedOption.value) {
+        alert("Please select a song first!")
         return
     }
 
-    await fetch(`/api/playlists/${id}/tracks`, {
+    const song = JSON.parse(selectedOption.value)
+
+    await fetch(`/api/playlists/${playlistID}/tracks`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name: trackName, artist: artistName})
+        body: JSON.stringify({name: song.name, artist: song.artist})
     })
-    getPlaylist(id)
+    .then(res => {
+        if(res.ok) {
+            getPlaylist(playlistID)
+        } else {
+            alert("Error adding song to playlist")
+        }
+    }).catch(error => {
+        console.error("Error:", error)
+    })
 }
 
 async function deleteTrack(playlistID, trackID){
@@ -189,20 +237,12 @@ async function deleteTrack(playlistID, trackID){
     getPlaylist(playlistID)
 }
 
-async function searchSong(event){
-    event.preventDefault()
-    const formData = new FormData(event.target)
-    const search = formData.get('search-track').toString().trim()
+changeLogin()
 
-    await fetch('/api/search-track', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({search})
-    }).then(async res => {
-            const data = await res.json()
-            console.log(data)
-        })
+if(window.location.href.includes("profile.html")){
+    getProfile()
 }
 
-changeLogin()
-getProfile()
+if(window.location.href.includes("create_playlist.html")){
+    listPlaylists()
+}

@@ -178,24 +178,30 @@ app.get('/api/me/profile', async (req, res) => {
 	res.json(details)
 })
 
-app.post('/api/search-track', async (req, res) => {
+app.get('/api/search-tracks/:track', async (req, res) => {
 	const accessToken = req.session.accessToken
 	if(!accessToken){
-		return res.status(401).json({ message: 'Not logged in'})
+		return res.status(401).json({message: 'Not logged in'})
 	}
 
-	const trackSpaces = req.body.search
-	const track = trackSpaces.replaceAll(" ", "+")
-
+	const track = req.params.track.replaceAll(" ", "+")
 	if (!track) {
-		return res.status(404).json({ message: 'No track found'})
+		return res.status(404).json({message: 'No track found'})
 	}
 
-	const track_search = await fetchWebApi(`v1/search?q=${track}&type=track`, accessToken)
+	const track_search = await fetchWebApi(`v1/search?q=${track}&type=track&limit=5`, accessToken)
+	if (!track_search.tracks.items.length) {
+		return res.status(404).json({message: 'No tracks found'})
+	}
 
-	const first_track = track_search.tracks.items[0]
-	console.log("IN API:", first_track)
-	res.json(track_search)
+	const tracks = track_search.tracks.items.map(track => ({
+		id: track.id,
+		name: track.name,
+		artist: track.artists.map(artist => artist.name).join(", "),
+		albumImage: track.album.images[0]?.url || '',
+	}))
+
+	res.json(tracks)
 })
 
 

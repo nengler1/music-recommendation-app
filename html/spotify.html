@@ -13,12 +13,12 @@
 
     <nav>
         <div class="nav-logo">
-            <a href="spotify.html"><img src="melofy-logo.png" alt="Melofy Logo"></a>
+            <a href="spotify.html"><img src="melofy-logo.png" alt="Melofy Logo" id="logo"></a>
         </div>
         <div class="nav-links">
-            <a href="index.html">Home</a>
+            <a href="spotify.html">Home</a>
             <button id="auth-btn" class="nav-link-btn"></button>
-            <a href="create_playlist.html">Create Playlist</a>
+            
         </div>
     </nav>
 
@@ -26,14 +26,6 @@
    
     <button class="button" id="get-artists-btn" onclick="getTopArtists()">Get Top Artists</button>
     <div class="spotify-track">
-    </div>
-
-    <div class="form-container">
-        <form onsubmit="searchSong(event)">
-            <label for="search-track">Search Song: </label>
-            <input name="search-track" id="search-track">
-            <input type="submit" value="Submit" required>
-        </form>
     </div>
     
     <a href="index.html" class="button">Click here to go back to the first page</a><br>
