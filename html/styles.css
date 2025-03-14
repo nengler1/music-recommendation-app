@@ -152,7 +152,6 @@ p {
 
 .cta .login-btn {
     font-size: x-large;
-    padding: 15px 30px;
 }
 
 /* Form Styling */
@@ -337,5 +336,10 @@ img {
     .nav-links {
         flex-direction: column;
         gap: 10px;
+    }
+
+    .cta .login-btn {
+        white-space: nowrap;
+        font-size: 1em;
     }
 }
