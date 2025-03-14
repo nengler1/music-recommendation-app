@@ -189,5 +189,20 @@ async function deleteTrack(playlistID, trackID){
     getPlaylist(playlistID)
 }
 
+async function searchSong(event){
+    event.preventDefault()
+    const formData = new FormData(event.target)
+    const search = formData.get('search-track').toString().trim()
+
+    await fetch('/api/search-track', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({search})
+    }).then(async res => {
+            const data = await res.json()
+            console.log(data)
+        })
+}
+
 changeLogin()
 getProfile()

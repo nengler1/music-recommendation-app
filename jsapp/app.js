@@ -34,7 +34,7 @@ app.get('/api', (req, res) => {
     if (who || x || y) {
         const filteredDancers = dancers.filter(item =>
             item.who === who || item.x === x || item.y === y
-        );
+        )
         if (filteredDancers.length > 0) {
             return res.status(200).json(filteredDancers)
         } else {
@@ -105,12 +105,11 @@ const spotifyAPI = new SpotifyWebAPI({
 app.get('/api/login', (req, res) => {
 	const scopes = [
 		'user-read-private',
-		'user-read-email',
 		'user-top-read',
 		'user-read-recently-played',
 		'user-read-playback-position'
 	]
-	res.redirect(spotifyAPI.createAuthorizeURL(scopes))
+	res.redirect(spotifyAPI.createAuthorizeURL(scopes, null, true))
 })
 
 app.get('/api/callback', async (req, res) => {
@@ -173,11 +172,32 @@ app.get('/api/me/profile', async (req, res) => {
 	const details = {
 		name: profile.display_name,
 		profileImage: profile.images[0]?.url || '',
-		spotifyProfileLink: profile.external_urls?.spotify,
+		spotifyProfileLink: profile.href,
 		followers: profile.followers?.total
 	}
 	res.json(details)
 })
+
+app.post('/api/search-track', async (req, res) => {
+	const accessToken = req.session.accessToken
+	if(!accessToken){
+		return res.status(401).json({ message: 'Not logged in'})
+	}
+
+	const trackSpaces = req.body.search
+	const track = trackSpaces.replaceAll(" ", "+")
+
+	if (!track) {
+		return res.status(404).json({ message: 'No track found'})
+	}
+
+	const track_search = await fetchWebApi(`v1/search?q=${track}&type=track`, accessToken)
+
+	const first_track = track_search.tracks.items[0]
+	console.log("IN API:", first_track)
+	res.json(track_search)
+})
+
 
 app.get('/api/me/top-tracks', async (req, res) => {
 	const {time_range} = req.query

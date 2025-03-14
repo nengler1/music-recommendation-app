@@ -27,6 +27,14 @@
     <button class="button" id="get-artists-btn" onclick="getTopArtists()">Get Top Artists</button>
     <div class="spotify-track">
     </div>
+
+    <div class="form-container">
+        <form onsubmit="searchSong(event)">
+            <label for="search-track">Search Song: </label>
+            <input name="search-track" id="search-track">
+            <input type="submit" value="Submit" required>
+        </form>
+    </div>
     
     <a href="index.html" class="button">Click here to go back to the first page</a><br>
     <script src="fetchapi.js"></script>
