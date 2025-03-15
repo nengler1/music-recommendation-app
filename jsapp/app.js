@@ -302,23 +302,62 @@ app.get('/api/me/top-tracks', async (req, res) => {
 
 const playlists = {}
 
+// create playlist
 app.post('/api/playlists', isAuthenticated, (req, res) => {
 	const {title} = req.body
-	console.log(req.body)
 	if(!title){
 		return res.status(400).json({ message: 'No playlist title'})
 	}
 
-	const id = crypto.randomUUID()
-	playlists[id] = {id, title, tracks: []}
-	res.status(201).json(playlists[id])
+	const userID = req.session.spotifyID;
+
+    db.run(`INSERT INTO playlists (title, user_id) VALUES (?, ?)`, 
+        [title, userID], 
+        function(err) {
+            if (err){
+				return res.status(500).json({ error: "Database error" })
+			}
+            res.status(201).json({ id: this.lastID, title })
+        }
+    )
 })
 
-// get all playlists
-app.get('/api/playlists', (req, res) => {
-	res.json(Object.values(playlists))
+// get all playlists for specific user
+app.get('/api/playlists', isAuthenticated, (req, res) => {
+    const userID = req.session.spotifyID;
+
+    db.all(`SELECT * FROM playlists WHERE user_id = ?`, 
+        [userID], 
+        (err, playlists) => {
+            if (err){
+				return res.status(500).json({ error: "Database error" })
+			}
+            res.json(playlists)
+        }
+    )
 })
 
+// delete playlist (only if owner)
+app.delete('/api/playlists/:id', isAuthenticated, (req, res) => {
+    const playlistID = req.params.id;
+    const userID = req.session.spotifyID;
+
+    db.run(`DELETE FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        function(err) {
+            if (err){
+				return res.status(500).json({ error: "Database error" })
+			}
+            if (this.changes === 0){
+				return res.status(403).json({error: "Unauthorized"})
+			}
+
+            res.json({message: "Playlist deleted"})
+        }
+    )
+})
+
+/*
 // get specific playlist
 app.get('/api/playlists/:id', (req, res) => {
 	const playlist = playlists[req.params.id]
@@ -328,6 +367,7 @@ app.get('/api/playlists/:id', (req, res) => {
 
 	res.json(playlist)
 })
+
 
 // update playlist
 app.put('/api/playlists/:id', (req, res) => {
@@ -351,9 +391,79 @@ app.delete('/api/playlists/:id', (req, res) => {
 	delete playlists[id]
 	res.status(204).json()
 })
+*/
 
 // -- Tracks w/ in playlists --
 
+// add a track to playlist
+app.post('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
+    const { name, artist } = req.body
+    const playlistID = req.params.id
+    const userID = req.session.spotifyID
+
+    db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        (err, playlist) => {
+            if (err) return res.status(500).json({error: "Database error"})
+            if (!playlist) return res.status(403).json({error: "Unauthorized"})
+
+            db.run(`INSERT INTO tracks (name, artist, playlist_id) VALUES (?, ?, ?)`, 
+                [name, artist, playlistID], 
+                function(err) {
+                    if (err) return res.status(500).json({error: "Database error"})
+                    res.status(201).json({id: this.lastID, name, artist})
+                }
+            )
+        }
+    )
+})
+
+// get all tracks in a playlist
+app.get('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
+    const playlistID = req.params.id
+    const userID = req.session.spotifyID
+
+    db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        (err, playlist) => {
+            if (err) return res.status(500).json({ error: "Database error" })
+            if (!playlist) return res.status(403).json({ error: "Unauthorized" })
+
+            db.all(`SELECT * FROM tracks WHERE playlist_id = ?`, 
+                [playlistID], 
+                (err, tracks) => {
+                    if (err) return res.status(500).json({ error: "Database error" })
+                    res.json(tracks)
+                }
+            )
+        }
+    )
+})
+
+// delete track from playlist
+app.delete('/api/playlists/:playlistId/tracks/:trackId', isAuthenticated, (req, res) => {
+    const { playlistID, trackID } = req.params
+    const userID = req.session.spotifyID
+
+    db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        (err, playlist) => {
+            if (err) return res.status(500).json({ error: "Database error" })
+            if (!playlist) return res.status(403).json({ error: "Unauthorized" })
+
+            db.run(`DELETE FROM tracks WHERE id = ? AND playlist_id = ?`, 
+                [trackID, playlistID], 
+                function(err) {
+                    if (err) return res.status(500).json({ error: "Database error" })
+                    if (this.changes === 0) return res.status(404).json({ error: "Track not found" })
+                    res.json({ message: "Track deleted" })
+                }
+            )
+        }
+    )
+})
+
+/*
 // Add tracks
 app.post('/api/playlists/:id/tracks', (req, res) => {
 	const playlist = playlists[req.params.id]
@@ -394,6 +504,7 @@ app.delete('/api/playlists/:playlistId/tracks/:trackId', (req, res) => {
 	playlist.tracks.splice(trackIndex, 1)
 	res.status(204).send()
 })
+*/
 
 app.listen(port, () => {
     console.log(`Listening at port ${port}`)

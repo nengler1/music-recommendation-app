@@ -88,32 +88,43 @@ function getTopArtists(){
 async function listPlaylists(){
     await fetch('/api/playlists', {
         method: 'GET',
-    }).then(async res => res.json())
-        .then(playlists => {
-            const container = document.getElementById('playlists')
-            container.innerHTML = playlists.map(playlist => `
-                <div class="spotify-track">
-                    <div class="track-card">
-                        <h2>Title: ${playlist.title}</h2>
-                        <button class="delete" onclick="deletePlaylist('${playlist.id}')">Delete</button>
-                        <button class="button" onclick="getPlaylist('${playlist.id}')">View Tracks</button>
+    })
+    .then(async res => {
+        if(res.status === 401) {
+            document.getElementById('playlists').innerHTML = "<p>You need to log in to view your playlists.</p>"
+            return
+        }
 
-                        <!-- Search and add song -->
-                        <form onsubmit="getSong(event, '${playlist.id}')">
-                            <input type="text" placeholder="Search for a song..." name="search-track" required />
-                            <button type="submit">Search</button>
-                        </form>
+        const playlists = await res.json()
+        const container = document.getElementById('playlists')
 
-                        <select id="song-dropdown-${playlist.id}">
-                            <option value="">Select a song</option>
-                        </select>
-                        <button onclick="addSong('${playlist.id}')">Add to Playlist</button>
+        if(playlists.length === 0){
+            container.innerHTML = "<p>You have no playlists yet.</p>"
+            return
+        }
+        container.innerHTML = playlists.map(playlist => `
+            <div class="spotify-track">
+                <div class="track-card">
+                    <h2>Title: ${playlist.title}</h2>
+                    <button class="delete" onclick="deletePlaylist('${playlist.id}')">Delete</button>
+                    <button class="button" onclick="getPlaylistTracks('${playlist.id}')">View Tracks</button>
 
-                        <div class="track-list" id="tracks-${playlist.id}"></div>
-                    </div>
+                    <!-- Search and add song -->
+                    <form onsubmit="getSong(event, '${playlist.id}')">
+                        <input type="text" placeholder="Search for a song..." name="search-track" required />
+                        <button type="submit">Search</button>
+                    </form>
+
+                    <select id="song-dropdown-${playlist.id}">
+                        <option value="">Select a song</option>
+                    </select>
+                    <button onclick="addSong('${playlist.id}')">Add to Playlist</button>
+
+                    <div class="track-list" id="tracks-${playlist.id}"></div>
                 </div>
-            `).join('')
-        })
+            </div>
+        `).join('')
+    })
 }
 
 async function createPlaylist(event){
@@ -125,13 +136,17 @@ async function createPlaylist(event){
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({title})
-    }).then(async res => {
-            const data = await res.json()
+    })
+    .then(async res => {
+        if(res.ok){
             listPlaylists()
-        })
+        } else {
+            alert("Failed to create playlist.")
+        }
+    })
 }
 
-
+/*
 async function getPlaylist(id){
     await fetch(`/api/playlists/${id}`, {
         method: 'GET'
@@ -152,7 +167,29 @@ async function getPlaylist(id){
             }
         })
 }
+*/
 
+// Fetch and Display Tracks in a Playlist
+async function getPlaylistTracks(playlistID) {
+    await fetch(`/api/playlists/${playlistID}/tracks`)
+    .then(async res => {
+        const tracks = await res.json()
+        const trackList = document.getElementById(`tracks-${playlistID}`)
+
+        if (tracks.length === 0) {
+            trackList.innerHTML = "<p>No tracks in this playlist.</p>"
+            return
+        }
+
+        trackList.innerHTML = tracks.map(track => `
+            <div>${track.name} - ${track.artist}
+                <button class="delete" onclick="deleteTrack('${playlistID}', '${track.id}')">Delete</button>
+            </div>
+        `).join('')
+    })
+}
+
+/*
 async function updatePlaylist(event){
     event.preventDefault()
     const formData = new FormData(event.target)
@@ -168,6 +205,7 @@ async function updatePlaylist(event){
             listPlaylists()
         })
 }
+*/
 
 async function deletePlaylist(id){
     await fetch(`/api/playlists/${id}`, {
@@ -186,8 +224,13 @@ async function getSong(event, playlistID){
     await fetch(`/api/search-tracks/${encodeURIComponent(search)}`, {
         method: 'GET',
     })
-    .then(async res => await res.json())
-    .then(songs => {
+    .then(async res => {
+        if (!res.ok) {
+            console.error("Error fetching songs")
+            return
+        }
+
+        const songs = await res.json()
         const dropdown = document.getElementById(`song-dropdown-${playlistID}`)
         dropdown.innerHTML = '<option value="">Select a song</option>'
 
@@ -220,7 +263,7 @@ async function addSong(playlistID) {
     })
     .then(res => {
         if(res.ok) {
-            getPlaylist(playlistID)
+            getPlaylistTracks(playlistID)
         } else {
             alert("Error adding song to playlist")
         }
@@ -234,7 +277,7 @@ async function deleteTrack(playlistID, trackID){
         method: 'DELETE'
     })
 
-    getPlaylist(playlistID)
+    getPlaylistTracks(playlistID)
 }
 
 // pre reqs
