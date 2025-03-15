@@ -17,6 +17,8 @@ app.use(session({
 	saveUninitialized: true
 }))
 
+const db = require('./database')
+
 // parsing "application/x-www-form-urlencoded"
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
@@ -123,6 +125,23 @@ app.get('/api/login', (req, res) => {
 	res.redirect(spotifyAPI.createAuthorizeURL(scopes, null, true))
 })
 
+app.post('/api/login', async (req, res) => {
+    const { spotifyId, name } = req.body;
+
+    db.run(`INSERT INTO users (spotify_id, name) VALUES (?, ?) 
+            ON CONFLICT(spotify_id) DO UPDATE SET name = excluded.name`, 
+        [spotifyId, name], 
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: "Database error" })
+            }
+
+            req.session.spotifyId = spotifyId;
+            res.json({ message: "User logged in", spotifyId })
+        }
+    )
+})
+
 app.get('/api/callback', async (req, res) => {
 	console.log("REDIRECTED")
 	const error = req.query.error
@@ -147,13 +166,33 @@ app.get('/api/callback', async (req, res) => {
 
 		const profile = await fetchWebApi('v1/me', accessToken)
 		const spotifyID = profile.id
+		const name = profile.display_name
 
+		// storing user in database
+		db.run(`INSERT INTO users (spotify_id, name) VALUES (?, ?) 
+				ON CONFLICT(spotify_id) DO UPDATE SET name = excluded.name`, 
+			[spotifyID, name], 
+			function(err) {
+				if (err) {
+					return res.status(500).json({ error: "Database error" })
+				}
+			}
+		)
+
+		req.session.spotifyID = spotifyID
 		res.redirect('/spotify.html')
 	} catch(error) {
 		console.error('Error:', error)
 		res.send("Error getting token")
 	}
 })
+
+const isAuthenticated = (req, res, next) => {
+    if (req.session.spotifyID) {
+        return next()
+    }
+    return res.status(401).json({error: "You must be logged in to access this."})
+}
 
 
 app.get('/api/me/status', (req, res) => {
@@ -177,7 +216,7 @@ async function fetchWebApi(endpoint, accessToken){
 }
 
 
-app.get('/api/me/profile', async (req, res) => {
+app.get('/api/me/profile', isAuthenticated, async (req, res) => {
 	const accessToken = req.session.accessToken
 	if(!accessToken){
 		return res.status(401).json({ message: 'Not logged in'})
@@ -198,7 +237,7 @@ app.get('/api/me/profile', async (req, res) => {
 	res.json(details)
 })
 
-app.get('/api/search-tracks/:track', async (req, res) => {
+app.get('/api/search-tracks/:track', isAuthenticated, async (req, res) => {
 	const accessToken = req.session.accessToken
 	if(!accessToken){
 		return res.status(401).json({message: 'Not logged in'})
@@ -263,7 +302,7 @@ app.get('/api/me/top-tracks', async (req, res) => {
 
 const playlists = {}
 
-app.post('/api/playlists', (req, res) => {
+app.post('/api/playlists', isAuthenticated, (req, res) => {
 	const {title} = req.body
 	console.log(req.body)
 	if(!title){
