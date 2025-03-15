@@ -17,16 +17,24 @@ app.use(session({
 	saveUninitialized: true
 }))
 
-// local user-auth
-const bcrypt = require('bcrypt')
-const crypto = require('crypto')
-const db = require('./database')
-
 // parsing "application/x-www-form-urlencoded"
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
 app.use(express.json())
+
+// Admin Features
+const { authenticate } = require('./users')
+
+const requireAuth = (req, res, next) => {
+	if(!authenticate(req.headers.authorization)) {
+		res.setHeader(
+			"WWW-Authenticate", "Basic realm='Melofy Admin Access'"
+		)
+		return res.status(401).json({error: "Unauthorized access"})
+	}
+	next()
+}
 
 // API testing (for class)
 const dancers = []
@@ -97,63 +105,6 @@ app.delete('/api', (req, res) => {
     }
 })
 
-// -- USER AUTH --
-
-const isAuth = (req, res, next) => {
-	if(!req.session.user) {
-		return res.status(401).json({ error: 'Unauthorized - Please log in' })
-	}
-	next()
-}
-
-app.post('/api/signup', async (req, res) => {
-    const {spotify_id, username, password} = req.body
-
-    if (!spotify_id || !username || !password) {
-        return res.status(400).json({ error: 'All fields are required' })
-    }
-
-    const hashed_password = await bcrypt.hash(password, 10)
-
-    db.run(
-        `INSERT INTO users (spotify_id, username, password) VALUES (?, ?, ?)`, [spotify_id, username, hashed_password],
-        (err) => {
-            if (err) {
-                return res.status(400).json({error: 'User already exists.'})
-            }
-            res.json({message: 'User created successfully'})
-        }
-    )
-})
-
-app.post('/api/login', async (req, res) => {
-    const {username, password} = req.body
-
-    if (!username || !password) {
-        return res.status(400).json({error: 'Username and password required'})
-    }
-
-    db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, user) => {
-        if (err || !user) {
-            return res.status(400).json({error: 'User not found'})
-        }
-
-        const password_match = await bcrypt.compare(password, user.password)
-        if (!password_match) {
-            return res.status(401).json({error: 'Invalid credentials'})
-        }
-
-        req.session.user = user
-        res.json({message: 'Login successful'})
-    })
-})
-
-app.post('/api/logout', (req, res) => {
-    req.session.destroy(() => {
-        res.json({ message: 'Logged out successfully' })
-    })
-})
-
 // -- SPOTIFY INTEGRATION --
 
 const spotifyAPI = new SpotifyWebAPI({
@@ -206,7 +157,7 @@ app.get('/api/callback', async (req, res) => {
 
 
 app.get('/api/me/status', (req, res) => {
-	if (req.session.accessToken){
+	if(req.session.accessToken){
 		res.json({loggedIn: true})
 	} else {
 		res.json({loggedIn: false})
@@ -225,13 +176,19 @@ async function fetchWebApi(endpoint, accessToken){
 	}
 }
 
-app.get('/api/me/profile', isAuthenticated, async (req, res) => {
+
+app.get('/api/me/profile', async (req, res) => {
 	const accessToken = req.session.accessToken
 	if(!accessToken){
 		return res.status(401).json({ message: 'Not logged in'})
 	}
 
 	const profile = await fetchWebApi('v1/me', accessToken)
+
+	if (!profile.display_name) {
+        return res.status(500).json({ error: "Unable to fetch Spotify display name" })
+    }
+
 	const details = {
 		name: profile.display_name,
 		profileImage: profile.images[0]?.url || '',
