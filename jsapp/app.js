@@ -8,23 +8,29 @@ const SpotifyWebAPI = require('spotify-web-api-node')
 const app = express()
 const port = 3000
 
+// session
 const session = require('express-session')
 
 app.use(session({
-	secret: 'c3BvdGlmeWFwaWtleQ==',
+	secret: process.env.SESSION_SECRET,
 	resave: false,
 	saveUninitialized: true
 }))
 
-const dancers = []
+// local user-auth
+const bcrypt = require('bcrypt')
+const crypto = require('crypto')
+const db = require('./database')
 
-// middleware to parse "application/x-www-form-urlencoded"
+// parsing "application/x-www-form-urlencoded"
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
 app.use(express.json())
 
-// Retrieve all dancers or filter by query params
+// API testing (for class)
+const dancers = []
+
 app.get('/api', (req, res) => {
     const {who, x, y} = req.query
 
@@ -45,7 +51,6 @@ app.get('/api', (req, res) => {
     return res.status(200).json(dancers) // No query params, return all dancers
 })
 
-// POST add new dancer
 app.post('/api', (req, res) => {
     console.log("- WOAH IN POST")
     const {who, x, y} = req.body
@@ -58,7 +63,6 @@ app.post('/api', (req, res) => {
     return res.status(201).json(dancers)
 })
 
-// PUT update dancer
 app.put('/api', (req, res) => {
     console.log("- IN PUT!!")
     const {who, x, y} = req.body
@@ -76,7 +80,6 @@ app.put('/api', (req, res) => {
     }
 })
 
-// DELETE remove dancer
 app.delete('/api', (req, res) => {
     console.log("- IN DELETE!!")
     const {who} = req.body
@@ -92,6 +95,63 @@ app.delete('/api', (req, res) => {
     } else {
         return res.status(404).json({error: "Dancer not found."})
     }
+})
+
+// -- USER AUTH --
+
+const isAuth = (req, res, next) => {
+	if(!req.session.user) {
+		return res.status(401).json({ error: 'Unauthorized - Please log in' })
+	}
+	next()
+}
+
+app.post('/api/signup', async (req, res) => {
+    const {spotify_id, username, password} = req.body
+
+    if (!spotify_id || !username || !password) {
+        return res.status(400).json({ error: 'All fields are required' })
+    }
+
+    const hashed_password = await bcrypt.hash(password, 10)
+
+    db.run(
+        `INSERT INTO users (spotify_id, username, password) VALUES (?, ?, ?)`, [spotify_id, username, hashed_password],
+        (err) => {
+            if (err) {
+                return res.status(400).json({error: 'User already exists.'})
+            }
+            res.json({message: 'User created successfully'})
+        }
+    )
+})
+
+app.post('/api/login', async (req, res) => {
+    const {username, password} = req.body
+
+    if (!username || !password) {
+        return res.status(400).json({error: 'Username and password required'})
+    }
+
+    db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, user) => {
+        if (err || !user) {
+            return res.status(400).json({error: 'User not found'})
+        }
+
+        const password_match = await bcrypt.compare(password, user.password)
+        if (!password_match) {
+            return res.status(401).json({error: 'Invalid credentials'})
+        }
+
+        req.session.user = user
+        res.json({message: 'Login successful'})
+    })
+})
+
+app.post('/api/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.json({ message: 'Logged out successfully' })
+    })
 })
 
 // -- SPOTIFY INTEGRATION --
@@ -134,6 +194,9 @@ app.get('/api/callback', async (req, res) => {
 		req.session.accessToken = accessToken
 		req.session.refreshToken = refreshToken
 
+		const profile = await fetchWebApi('v1/me', accessToken)
+		const spotifyID = profile.id
+
 		res.redirect('/spotify.html')
 	} catch(error) {
 		console.error('Error:', error)
@@ -162,7 +225,7 @@ async function fetchWebApi(endpoint, accessToken){
 	}
 }
 
-app.get('/api/me/profile', async (req, res) => {
+app.get('/api/me/profile', isAuthenticated, async (req, res) => {
 	const accessToken = req.session.accessToken
 	if(!accessToken){
 		return res.status(401).json({ message: 'Not logged in'})
@@ -173,7 +236,7 @@ app.get('/api/me/profile', async (req, res) => {
 		name: profile.display_name,
 		profileImage: profile.images[0]?.url || '',
 		spotifyProfileLink: profile.href,
-		followers: profile.followers?.total
+		followers: profile.followers?.total,
 	}
 	res.json(details)
 })
