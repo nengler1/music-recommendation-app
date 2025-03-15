@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <title>Sign Up to Melofy</title>
+</head>
+<body>
+    <nav>
+        <div class="nav-logo">
+            <a href="spotify.html"><img src="melofy-logo.png" alt="Melofy Logo" id="logo"></a>
+        </div>
+        <div class="nav-links">
+            <a href="spotify.html">Home</a>
+            <button id="auth-btn" class="nav-link-btn"></button>
+        </div>
+    </nav>
+
+    <div class="auth-container">
+        <h2>Sign Up</h2>
+        <button class="spotify-login-btn" onclick="redirectToSpotify()">Sign Up with Spotify</button>
+
+        <form onsubmit="signUp(event)">
+            <input type="text" id="spotify-username" placeholder="Spotify Username (Auto-filled)" readonly>
+            <input type="password" id="password" placeholder="Create a Password" required>
+            <button type="submit">Create Account</button>
+        </form>
+
+        <p>Already have an account? <a href="login.html">Log in</a></p>
+    </div>
+
+    <script src="fetchapi.js"></script>
+</body>
+</html>

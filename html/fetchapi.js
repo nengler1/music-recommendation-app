@@ -237,6 +237,60 @@ async function deleteTrack(playlistID, trackID){
     getPlaylist(playlistID)
 }
 
+// login stuff
+
+async function fetchSpotifyLogin(){
+    await fetch('/api/me/profile')
+    .then(async res => {
+        if(res.ok){
+            const profile = await res.json()
+            document.getElementById('spotify-username').value = profile.name
+        } else {
+            alert("You need to be logged in via Spotify first!")
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error)
+    })
+}
+
+async function signUp(event){
+    event.preventDefault()
+    const username = document.getElementById('spotify-username').value
+    const password = document.getElementById('password').value
+
+    if(!username) {
+        alert("Spotify username is required. Please log in with Spotify first.")
+        return
+    }
+
+    await fetch('/api/signup', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spotify_id: username, username, password })
+    })
+    .then(res => {
+        if(res.ok){
+            alert("Account created! You can now log in.")
+            window.location.href = "login.html"
+        } else {
+            alert("Signup failed! User may already exist.")
+        }
+    })
+    .catch(error => {
+        console.error("Error:", error)
+    })
+}
+
+function redirectToSpotify() {
+    window.location.href = "/api/login"
+}
+
+if(window.location.href.includes("signup.html")){
+    fetchSpotifyProfile()
+}
+
+// pre reqs
 changeLogin()
 
 if(window.location.href.includes("profile.html")){
