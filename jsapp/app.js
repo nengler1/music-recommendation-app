@@ -302,8 +302,6 @@ app.get('/api/me/top-tracks', async (req, res) => {
 
 // -- Playlist creation --
 
-const playlists = {}
-
 // create playlist
 app.post('/api/playlists', isAuthenticated, (req, res) => {
 	const {title} = req.body
@@ -443,7 +441,7 @@ app.get('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
 })
 
 // delete track from playlist
-app.delete('/api/playlists/:playlistId/tracks/:trackId', isAuthenticated, (req, res) => {
+app.delete('/api/playlists/:playlistID/tracks/:trackID', isAuthenticated, (req, res) => {
     const { playlistID, trackID } = req.params
     const userID = req.session.spotifyID
 
