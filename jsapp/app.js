@@ -125,6 +125,7 @@ app.get('/api/login', (req, res) => {
 	res.redirect(spotifyAPI.createAuthorizeURL(scopes, null, true))
 })
 
+/*
 app.post('/api/login', async (req, res) => {
     const { spotifyId, name } = req.body;
 
@@ -141,6 +142,7 @@ app.post('/api/login', async (req, res) => {
         }
     )
 })
+*/
 
 app.get('/api/callback', async (req, res) => {
 	console.log("REDIRECTED")
@@ -180,7 +182,7 @@ app.get('/api/callback', async (req, res) => {
 		)
 
 		req.session.spotifyID = spotifyID
-		res.redirect('/spotify.html')
+		res.redirect('/')
 	} catch(error) {
 		console.error('Error:', error)
 		res.send("Error getting token")

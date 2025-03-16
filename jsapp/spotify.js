@@ -54,7 +54,7 @@ app.get('/callback', async (req, res) => {
         req.session.accessToken = accessToken
         req.session.refreshToken = refreshToken
 
-        res.redirect('/spotify.html')
+        res.redirect('/index.html')
     } catch(error) {
         console.error('Error:', error)
         res.send("Error getting token")
