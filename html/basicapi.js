@@ -1,9 +1,8 @@
-async function postDancer(event){
+async function fetchAPI(event, method){
     event.preventDefault()
     const formData = new FormData(event.target)
-    console.log("POST FORM DATA:", formData)
     await fetch('/api', {
-        method: 'POST',
+        method: method,
         body: new URLSearchParams(formData)
     }).then(async res => {
             const data = await res.json()
@@ -12,7 +11,6 @@ async function postDancer(event){
         .catch(error => {
             console.error("An error has occured:", error)
         })
-    
     listDancers()
 }
 
@@ -67,38 +65,6 @@ async function getDancer(event){
                 li.innerText = `Name: ${dancer.who} | X: ${dancer.x} | Y: ${dancer.y}`
                 dancer_list.appendChild(li)
             })
-        })
-        .catch(error => {
-            console.error("An error has occured:", error)
-        })
-}
-
-async function deleteDancer(event) {
-    event.preventDefault()
-    const formData = new FormData(event.target)
-    console.log("DELETE FORM DATA:", formData)
-    await fetch('/api', {
-        method: 'DELETE',
-        body: new URLSearchParams(formData)
-    }).then(async res => {
-            const data = await res.json()
-            console.log(data)
-        })
-        .catch(error => {
-            console.error("An error has occured:", error)
-        })
-}
-
-async function updateDancer(event) {
-    event.preventDefault()
-    const formData = new FormData(event.target)
-    console.log("PUT FORM DATA:", formData)
-    await fetch('/api', {
-        method: 'PUT',
-        body: new URLSearchParams(formData)
-    }).then(async res => {
-            const data = await res.json()
-            console.log(data)
         })
         .catch(error => {
             console.error("An error has occured:", error)

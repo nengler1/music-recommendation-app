@@ -8,23 +8,39 @@ const SpotifyWebAPI = require('spotify-web-api-node')
 const app = express()
 const port = 3000
 
+// session
 const session = require('express-session')
 
 app.use(session({
-	secret: 'c3BvdGlmeWFwaWtleQ==',
+	secret: process.env.SESSION_SECRET,
 	resave: false,
 	saveUninitialized: true
 }))
 
-const dancers = []
+const db = require('./database')
 
-// middleware to parse "application/x-www-form-urlencoded"
+// parsing "application/x-www-form-urlencoded"
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
 app.use(express.json())
 
-// Retrieve all dancers or filter by query params
+// Admin Features
+const { authenticate } = require('./users') // hashing passwords in users.js
+
+const requireAuth = (req, res, next) => {
+	if(!authenticate(req.headers.authorization)) {
+		res.setHeader(
+			"WWW-Authenticate", "Basic realm='Melofy Admin Access'"
+		)
+		return res.status(401).json({error: "Unauthorized access"})
+	}
+	next()
+}
+
+// API testing (for class)
+const dancers = []
+
 app.get('/api', (req, res) => {
     const {who, x, y} = req.query
 
@@ -45,7 +61,6 @@ app.get('/api', (req, res) => {
     return res.status(200).json(dancers) // No query params, return all dancers
 })
 
-// POST add new dancer
 app.post('/api', (req, res) => {
     console.log("- WOAH IN POST")
     const {who, x, y} = req.body
@@ -58,7 +73,6 @@ app.post('/api', (req, res) => {
     return res.status(201).json(dancers)
 })
 
-// PUT update dancer
 app.put('/api', (req, res) => {
     console.log("- IN PUT!!")
     const {who, x, y} = req.body
@@ -76,7 +90,6 @@ app.put('/api', (req, res) => {
     }
 })
 
-// DELETE remove dancer
 app.delete('/api', (req, res) => {
     console.log("- IN DELETE!!")
     const {who} = req.body
@@ -105,13 +118,31 @@ const spotifyAPI = new SpotifyWebAPI({
 app.get('/api/login', (req, res) => {
 	const scopes = [
 		'user-read-private',
-		'user-read-email',
 		'user-top-read',
 		'user-read-recently-played',
 		'user-read-playback-position'
 	]
-	res.redirect(spotifyAPI.createAuthorizeURL(scopes))
+	res.redirect(spotifyAPI.createAuthorizeURL(scopes, null, true))
 })
+
+/*
+app.post('/api/login', async (req, res) => {
+    const { spotifyId, name } = req.body;
+
+    db.run(`INSERT INTO users (spotify_id, name) VALUES (?, ?) 
+            ON CONFLICT(spotify_id) DO UPDATE SET name = excluded.name`, 
+        [spotifyId, name], 
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: "Database error" })
+            }
+
+            req.session.spotifyId = spotifyId;
+            res.json({ message: "User logged in", spotifyId })
+        }
+    )
+})
+*/
 
 app.get('/api/callback', async (req, res) => {
 	console.log("REDIRECTED")
@@ -135,16 +166,39 @@ app.get('/api/callback', async (req, res) => {
 		req.session.accessToken = accessToken
 		req.session.refreshToken = refreshToken
 
-		res.redirect('/spotify.html')
+		const profile = await fetchWebApi('v1/me', accessToken)
+		const spotifyID = profile.id
+		const name = profile.display_name
+
+		// storing user in database
+		db.run(`INSERT INTO users (spotify_id, name) VALUES (?, ?) 
+				ON CONFLICT(spotify_id) DO UPDATE SET name = excluded.name`, 
+			[spotifyID, name], 
+			function(err) {
+				if (err) {
+					return res.status(500).json({ error: "Database error" })
+				}
+			}
+		)
+
+		req.session.spotifyID = spotifyID
+		res.redirect('/')
 	} catch(error) {
 		console.error('Error:', error)
 		res.send("Error getting token")
 	}
 })
 
+const isAuthenticated = (req, res, next) => {
+    if (req.session.spotifyID) {
+        return next()
+    }
+    return res.status(401).json({error: "You must be logged in to access this."})
+}
+
 
 app.get('/api/me/status', (req, res) => {
-	if (req.session.accessToken){
+	if(req.session.accessToken){
 		res.json({loggedIn: true})
 	} else {
 		res.json({loggedIn: false})
@@ -163,21 +217,54 @@ async function fetchWebApi(endpoint, accessToken){
 	}
 }
 
-app.get('/api/me/profile', async (req, res) => {
+
+app.get('/api/me/profile', isAuthenticated, async (req, res) => {
 	const accessToken = req.session.accessToken
 	if(!accessToken){
 		return res.status(401).json({ message: 'Not logged in'})
 	}
 
 	const profile = await fetchWebApi('v1/me', accessToken)
+
+	if (!profile.display_name) {
+        return res.status(500).json({ error: "Unable to fetch Spotify display name" })
+    }
+
 	const details = {
 		name: profile.display_name,
 		profileImage: profile.images[0]?.url || '',
 		spotifyProfileLink: profile.href,
-		followers: profile.followers?.total
+		followers: profile.followers?.total,
 	}
 	res.json(details)
 })
+
+app.get('/api/search-tracks/:track', isAuthenticated, async (req, res) => {
+	const accessToken = req.session.accessToken
+	if(!accessToken){
+		return res.status(401).json({message: 'Not logged in'})
+	}
+
+	const track = req.params.track.replaceAll(" ", "+")
+	if (!track) {
+		return res.status(404).json({message: 'No track found'})
+	}
+
+	const track_search = await fetchWebApi(`v1/search?q=${track}&type=track&limit=5`, accessToken)
+	if (!track_search.tracks.items.length) {
+		return res.status(404).json({message: 'No tracks found'})
+	}
+
+	const tracks = track_search.tracks.items.map(track => ({
+		id: track.id,
+		name: track.name,
+		artist: track.artists.map(artist => artist.name).join(", "),
+		albumImage: track.album.images[0]?.url || '',
+	}))
+
+	res.json(tracks)
+})
+
 
 app.get('/api/me/top-tracks', async (req, res) => {
 	const {time_range} = req.query
@@ -215,25 +302,62 @@ app.get('/api/me/top-tracks', async (req, res) => {
 
 // -- Playlist creation --
 
-const playlists = {}
-
-app.post('/api/playlists', (req, res) => {
+// create playlist
+app.post('/api/playlists', isAuthenticated, (req, res) => {
 	const {title} = req.body
-	console.log(req.body)
 	if(!title){
 		return res.status(400).json({ message: 'No playlist title'})
 	}
 
-	const id = crypto.randomUUID()
-	playlists[id] = {id, title, tracks: []}
-	res.status(201).json(playlists[id])
+	const userID = req.session.spotifyID;
+
+    db.run(`INSERT INTO playlists (title, user_id) VALUES (?, ?)`, 
+        [title, userID], 
+        function(err) {
+            if (err){
+				return res.status(500).json({ error: "Database error" })
+			}
+            res.status(201).json({ id: this.lastID, title })
+        }
+    )
 })
 
-// get all playlists
-app.get('/api/playlists', (req, res) => {
-	res.json(Object.values(playlists))
+// get all playlists for specific user
+app.get('/api/playlists', isAuthenticated, (req, res) => {
+    const userID = req.session.spotifyID;
+
+    db.all(`SELECT * FROM playlists WHERE user_id = ?`, 
+        [userID], 
+        (err, playlists) => {
+            if (err){
+				return res.status(500).json({ error: "Database error" })
+			}
+            res.json(playlists)
+        }
+    )
 })
 
+// delete playlist (only if owner)
+app.delete('/api/playlists/:id', isAuthenticated, (req, res) => {
+    const playlistID = req.params.id;
+    const userID = req.session.spotifyID;
+
+    db.run(`DELETE FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        function(err) {
+            if (err){
+				return res.status(500).json({ error: "Database error" })
+			}
+            if (this.changes === 0){
+				return res.status(403).json({error: "Unauthorized"})
+			}
+
+            res.json({message: "Playlist deleted"})
+        }
+    )
+})
+
+/*
 // get specific playlist
 app.get('/api/playlists/:id', (req, res) => {
 	const playlist = playlists[req.params.id]
@@ -243,6 +367,7 @@ app.get('/api/playlists/:id', (req, res) => {
 
 	res.json(playlist)
 })
+
 
 // update playlist
 app.put('/api/playlists/:id', (req, res) => {
@@ -266,9 +391,79 @@ app.delete('/api/playlists/:id', (req, res) => {
 	delete playlists[id]
 	res.status(204).json()
 })
+*/
 
 // -- Tracks w/ in playlists --
 
+// add a track to playlist
+app.post('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
+    const { name, artist } = req.body
+    const playlistID = req.params.id
+    const userID = req.session.spotifyID
+
+    db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        (err, playlist) => {
+            if (err) return res.status(500).json({error: "Database error"})
+            if (!playlist) return res.status(403).json({error: "Unauthorized"})
+
+            db.run(`INSERT INTO tracks (name, artist, playlist_id) VALUES (?, ?, ?)`, 
+                [name, artist, playlistID], 
+                function(err) {
+                    if (err) return res.status(500).json({error: "Database error"})
+                    res.status(201).json({id: this.lastID, name, artist})
+                }
+            )
+        }
+    )
+})
+
+// get all tracks in a playlist
+app.get('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
+    const playlistID = req.params.id
+    const userID = req.session.spotifyID
+
+    db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        (err, playlist) => {
+            if (err) return res.status(500).json({ error: "Database error" })
+            if (!playlist) return res.status(403).json({ error: "Unauthorized" })
+
+            db.all(`SELECT * FROM tracks WHERE playlist_id = ?`, 
+                [playlistID], 
+                (err, tracks) => {
+                    if (err) return res.status(500).json({ error: "Database error" })
+                    res.json(tracks)
+                }
+            )
+        }
+    )
+})
+
+// delete track from playlist
+app.delete('/api/playlists/:playlistID/tracks/:trackID', isAuthenticated, (req, res) => {
+    const { playlistID, trackID } = req.params
+    const userID = req.session.spotifyID
+
+    db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        (err, playlist) => {
+            if (err) return res.status(500).json({ error: "Database error" })
+            if (!playlist) return res.status(403).json({ error: "Unauthorized" })
+
+            db.run(`DELETE FROM tracks WHERE id = ? AND playlist_id = ?`, 
+                [trackID, playlistID], 
+                function(err) {
+                    if (err) return res.status(500).json({ error: "Database error" })
+                    if (this.changes === 0) return res.status(404).json({ error: "Track not found" })
+                    res.json({ message: "Track deleted" })
+                }
+            )
+        }
+    )
+})
+
+/*
 // Add tracks
 app.post('/api/playlists/:id/tracks', (req, res) => {
 	const playlist = playlists[req.params.id]
@@ -309,6 +504,7 @@ app.delete('/api/playlists/:playlistId/tracks/:trackId', (req, res) => {
 	playlist.tracks.splice(trackIndex, 1)
 	res.status(204).send()
 })
+*/
 
 app.listen(port, () => {
     console.log(`Listening at port ${port}`)
