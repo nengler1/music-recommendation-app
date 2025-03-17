@@ -26,7 +26,7 @@ app.use(bodyParser.json())
 app.use(express.json())
 
 // Admin Features
-const { authenticate } = require('./users')
+const { authenticate } = require('./users') // hashing passwords in users.js
 
 const requireAuth = (req, res, next) => {
 	if(!authenticate(req.headers.authorization)) {

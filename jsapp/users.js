@@ -21,7 +21,7 @@ const authenticate = (authHeader) => {
     }
 }
 
-// Example users database (in-memory)
+// admin user (in memory)
 const admin_pass = process.env.ADMIN_PASS
 const users = {
     "natan": hashPassword(admin_pass, "natan"),

@@ -285,8 +285,20 @@ changeLogin()
 
 if(window.location.href.includes("profile.html")){
     getProfile()
+    const loggedIn = checkLoginStatus()
+    .then(res => {
+        if(!res){
+            window.location.href = '/'
+        }
+    })
 }
 
 if(window.location.href.includes("create_playlist.html")){
     listPlaylists()
+    const loggedIn = checkLoginStatus()
+    .then(res => {
+        if(!res){
+            window.location.href = '/'
+        }
+    })
 }
