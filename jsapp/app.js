@@ -26,16 +26,25 @@ app.use(bodyParser.json())
 app.use(express.json())
 
 // Admin Features
-const { authenticate } = require('./users') // hashing passwords in users.js
+const { authenticate, hashPassword } = require('./users') // hashing passwords in users.js
 
-const requireAuth = (req, res, next) => {
-	if(!authenticate(req.headers.authorization)) {
-		res.setHeader(
-			"WWW-Authenticate", "Basic realm='Melofy Admin Access'"
-		)
-		return res.status(401).json({error: "Unauthorized access"})
-	}
-	next()
+async function requireAuth(req, res, next) {
+	const user = await authenticate(req.headers.authorization)
+    if (!user) {
+        res.setHeader("WWW-Authenticate", "Basic realm='Melofy Admin Access'")
+        return res.status(401).json({error: "Unauthorized access"})
+    }
+    req.user = user
+    next()
+}
+
+async function requireAdmin(req, res, next){
+    await requireAuth(req, res, async () => {
+        if (!req.user || req.user.role !== "admin") {
+            return res.status(403).json({error: "Forbidden: Admins only"})
+        }
+        next()
+    })
 }
 
 // API testing (for class)
@@ -43,10 +52,6 @@ const dancers = []
 
 app.get('/api', (req, res) => {
     const {who, x, y} = req.query
-
-    console.log("PATH /api")
-    console.log("QUERY", req.query)
-
     if (who || x || y) {
         const filteredDancers = dancers.filter(item =>
             item.who === who || item.x === x || item.y === y
@@ -61,7 +66,7 @@ app.get('/api', (req, res) => {
     return res.status(200).json(dancers) // No query params, return all dancers
 })
 
-app.post('/api', (req, res) => {
+app.post('/api', requireAuth, (req, res) => {
     console.log("- WOAH IN POST")
     const {who, x, y} = req.body
 
@@ -73,7 +78,7 @@ app.post('/api', (req, res) => {
     return res.status(201).json(dancers)
 })
 
-app.put('/api', (req, res) => {
+app.put('/api', requireAuth, (req, res) => {
     console.log("- IN PUT!!")
     const {who, x, y} = req.body
 
@@ -90,7 +95,7 @@ app.put('/api', (req, res) => {
     }
 })
 
-app.delete('/api', (req, res) => {
+app.delete('/api', requireAuth, (req, res) => {
     console.log("- IN DELETE!!")
     const {who} = req.body
 
@@ -105,6 +110,64 @@ app.delete('/api', (req, res) => {
     } else {
         return res.status(404).json({error: "Dancer not found."})
     }
+})
+
+// admin API
+
+// post a new user
+app.post('/api/admin/users', requireAdmin, (req, res) => {
+    const {username, password, role} = req.body
+    if (!username || !password || !["admin", "author"].includes(role)) {
+        return res.status(400).json({error: "Invalid input"})
+    }
+
+    const hashed_password = hashPassword(password, username)
+	const role_query = db.prepare(`INSERT INTO admins (username, hashed_password, role) VALUES (?, ?, ?)`)
+    role_query.run(username, hashed_password, role, (err) => {
+            if (err){
+				return res.status(400).json({ error: "User already exists or database error" })
+			}
+            res.status(201).json({message: "User created", username, role})
+        }
+    )
+})
+
+// Get all users
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+    db.all("SELECT id, username, role FROM admins", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Database error" })
+        res.json(rows)
+    })
+})
+
+// Update user role 
+app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
+    const { role } = req.body
+    const { id } = req.params
+
+    if (!["admin", "author"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" })
+    }
+
+    db.run(`UPDATE admins SET role = ? WHERE id = ?`, [role, id], function (err) {
+        if (err) return res.status(500).json({ error: "Database error" })
+        res.json({ message: "User updated successfully" })
+    });
+});
+
+// Delete user 
+app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
+    const { id } = req.params
+
+    db.run(`DELETE FROM admins WHERE id = ?`, [id], function (err) {
+        if (err) return res.status(500).json({ error: "Database error" })
+        res.json({ message: "User deleted successfully" })
+    })
+})
+
+// Check if logged-in user is admin
+app.get('/api/me', requireAuth, (req, res) => {
+    res.json({ username: req.user.username, role: req.user.role })
 })
 
 // -- SPOTIFY INTEGRATION --
