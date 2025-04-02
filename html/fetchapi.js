@@ -256,10 +256,17 @@ async function addSong(playlistID) {
 
     const song = JSON.parse(selectedOption.value)
 
+    console.log("SONG DETAILS:", song)
+
     await fetch(`/api/playlists/${playlistID}/tracks`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name: song.name, artist: song.artist})
+        body: JSON.stringify({
+            name: song.name, 
+            artist: song.artist,
+            popularity: song.popularity,
+            uri: song.uri
+        })
     })
     .then(res => {
         if(res.ok) {

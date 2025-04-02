@@ -43,6 +43,8 @@ db.serialize(() => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         artist TEXT,
+        popularity INTEGER,
+        uri TEXT,
         playlist_id INTEGER,
         FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
     );

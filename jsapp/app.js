@@ -319,10 +319,11 @@ app.get('/api/search-tracks/:track', isAuthenticated, async (req, res) => {
 	}
 
 	const tracks = track_search.tracks.items.map(track => ({
-		id: track.id,
 		name: track.name,
 		artist: track.artists.map(artist => artist.name).join(", "),
 		albumImage: track.album.images[0]?.url || '',
+		popularity: track.popularity,
+		uri: track.uri,
 	}))
 
 	res.json(tracks)
@@ -460,9 +461,16 @@ app.delete('/api/playlists/:id', (req, res) => {
 
 // add a track to playlist
 app.post('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
-    const { name, artist } = req.body
+    const { name, artist, popularity, uri } = req.body
     const playlistID = req.params.id
     const userID = req.session.spotifyID
+
+	console.log("NAME", name)
+	console.log("ARTIST", artist)
+	console.log("POPULARITY", popularity)
+	console.log("URI", uri)
+
+	console.log(req.body)
 
     db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
         [playlistID, userID], 
@@ -470,8 +478,8 @@ app.post('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
             if (err) return res.status(500).json({error: "Database error"})
             if (!playlist) return res.status(403).json({error: "Unauthorized"})
 
-            db.run(`INSERT INTO tracks (name, artist, playlist_id) VALUES (?, ?, ?)`, 
-                [name, artist, playlistID], 
+            db.run(`INSERT INTO tracks (name, artist, popularity, uri, playlist_id) VALUES (?, ?, ?, ?, ?)`, 
+                [name, artist, popularity, uri, playlistID], 
                 function(err) {
                     if (err) return res.status(500).json({error: "Database error"})
                     res.status(201).json({id: this.lastID, name, artist})
