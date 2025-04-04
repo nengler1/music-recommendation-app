@@ -337,7 +337,7 @@ input[type="file"] {
 #playlist-title-details h1 {
     font-size: 50px;
     position: relative;
-    transform: translate(40%, -7rem);
+    transform: translate(25%, -7rem);
 }
 
 .track-list {

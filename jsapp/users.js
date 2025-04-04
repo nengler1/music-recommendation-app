@@ -25,7 +25,7 @@ function authenticate(authHeader) {
                     return resolve(null)
                 }
                 if (!row) {
-                    console.log("User not found in database");
+                    console.log("User not found in database")
                     return resolve(null)
                 }
 
@@ -36,7 +36,7 @@ function authenticate(authHeader) {
                 } else {
                     return resolve(null)
                 }
-            });
+            })
 
         } catch (err) {
             console.log("Error during process:", err.message)

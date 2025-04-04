@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     const contentLength = parseInt(req.headers['content-length'] || '0')
     const MAX_SIZE = 2048 * 1024 // 1MB
 
-    if (contentLength > MAX_SIZE) {
+    if(contentLength > MAX_SIZE){
         return res.status(413).json({error: 'Image too large. Max 2MB allowed.'})
     }
 
@@ -39,9 +39,9 @@ app.use((req, res, next) => {
 // Admin Features
 const { authenticate, hashPassword } = require('./users') // hashing passwords in users.js
 
-async function requireAuth(req, res, next) {
+async function requireAuth(req, res, next){
 	const user = await authenticate(req.headers.authorization)
-    if (!user) {
+    if(!user){
         res.setHeader("WWW-Authenticate", "Basic realm='Melofy Admin Access'")
         return res.status(401).json({error: "Unauthorized access"})
     }
@@ -51,7 +51,7 @@ async function requireAuth(req, res, next) {
 
 async function requireAdmin(req, res, next){
     await requireAuth(req, res, async () => {
-        if (!req.user || req.user.role !== "admin") {
+        if(!req.user || req.user.role !== "admin"){
             return res.status(403).json({error: "Forbidden: Admins only"})
         }
         next()
@@ -63,11 +63,11 @@ const dancers = []
 
 app.get('/api', (req, res) => {
     const {who, x, y} = req.query
-    if (who || x || y) {
+    if(who || x || y){
         const filteredDancers = dancers.filter(item =>
             item.who === who || item.x === x || item.y === y
         )
-        if (filteredDancers.length > 0) {
+        if(filteredDancers.length > 0){
             return res.status(200).json(filteredDancers)
         } else {
             return res.status(404).json({error: "Dancer not found"})
@@ -81,7 +81,7 @@ app.post('/api', requireAuth, (req, res) => {
     console.log("- WOAH IN POST")
     const {who, x, y} = req.body
 
-    if (!who || !x || !y) {
+    if(!who || !x || !y){
         return res.status(400).json({error: "Missing parameters"})
     }
 
@@ -93,12 +93,12 @@ app.put('/api', requireAuth, (req, res) => {
     console.log("- IN PUT!!")
     const {who, x, y} = req.body
 
-    if (!who || !x || !y) {
+    if(!who || !x || !y){
         return res.status(400).json({error: "Missing parameters"})
     }
 
     const index = dancers.findIndex(dancer => dancer.who === who)
-    if (index !== -1) {
+    if(index !== -1){
         dancers[index] = {who, x, y}
         return res.status(201).json(dancers)
     } else {
@@ -110,12 +110,12 @@ app.delete('/api', requireAuth, (req, res) => {
     console.log("- IN DELETE!!")
     const {who} = req.body
 
-    if (!who) {
+    if(!who){
         return res.status(400).json({error: "Missing 'who' parameter"})
     }
 
     const index = dancers.findIndex(dancer => dancer.who === who)
-    if (index !== -1) {
+    if(index !== -1){
         dancers.splice(index, 1)
         return res.status(200).json(dancers)
     } else {
@@ -128,14 +128,14 @@ app.delete('/api', requireAuth, (req, res) => {
 // post a new user
 app.post('/api/admin/users', requireAdmin, (req, res) => {
     const {username, password, role} = req.body
-    if (!username || !password || !["admin", "author"].includes(role)) {
+    if(!username || !password || !["admin", "author"].includes(role)){
         return res.status(400).json({error: "Invalid input"})
     }
 
     const hashed_password = hashPassword(password, username)
 	const role_query = db.prepare(`INSERT INTO admins (username, hashed_password, role) VALUES (?, ?, ?)`)
     role_query.run(username, hashed_password, role, (err) => {
-            if (err){
+            if(err){
 				return res.status(400).json({ error: "User already exists or database error" })
 			}
             res.status(201).json({message: "User created", username, role})
@@ -146,7 +146,7 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
 // Get all users
 app.get('/api/admin/users', requireAdmin, (req, res) => {
     db.all("SELECT id, username, role FROM admins", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: "Database error" })
+        if(err) return res.status(500).json({ error: "Database error" })
         res.json(rows)
     })
 })
@@ -156,12 +156,12 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     const { role } = req.body
     const { id } = req.params
 
-    if (!["admin", "author"].includes(role)) {
+    if(!["admin", "author"].includes(role)){
         return res.status(400).json({ error: "Invalid role" })
     }
 
-    db.run(`UPDATE admins SET role = ? WHERE id = ?`, [role, id], function (err) {
-        if (err) return res.status(500).json({ error: "Database error" })
+    db.run(`UPDATE admins SET role = ? WHERE id = ?`, [role, id], function (err){
+        if(err) return res.status(500).json({ error: "Database error" })
         res.json({ message: "User updated successfully" })
     });
 });
@@ -170,8 +170,8 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
 app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
     const { id } = req.params
 
-    db.run(`DELETE FROM admins WHERE id = ?`, [id], function (err) {
-        if (err) return res.status(500).json({ error: "Database error" })
+    db.run(`DELETE FROM admins WHERE id = ?`, [id], function (err){
+        if(err) return res.status(500).json({ error: "Database error" })
         res.json({ message: "User deleted successfully" })
     })
 })
@@ -208,8 +208,8 @@ app.post('/api/login', async (req, res) => {
     db.run(`INSERT INTO users (spotify_id, name) VALUES (?, ?) 
             ON CONFLICT(spotify_id) DO UPDATE SET name = excluded.name`, 
         [spotifyId, name], 
-        function(err) {
-            if (err) {
+        function(err){
+            if(err){
                 return res.status(500).json({ error: "Database error" })
             }
 
@@ -250,8 +250,8 @@ app.get('/api/callback', async (req, res) => {
 		db.run(`INSERT INTO users (spotify_id, name) VALUES (?, ?) 
 				ON CONFLICT(spotify_id) DO UPDATE SET name = excluded.name`, 
 			[spotifyID, name], 
-			function(err) {
-				if (err) {
+			function(err){
+				if(err){
 					return res.status(500).json({ error: "Database error" })
 				}
 			}
@@ -259,14 +259,14 @@ app.get('/api/callback', async (req, res) => {
 
 		req.session.spotifyID = spotifyID
 		res.redirect('/')
-	} catch(error) {
+	} catch(error){
 		console.error('Error:', error)
 		res.send("Error getting token")
 	}
 })
 
 const isAuthenticated = (req, res, next) => {
-    if (req.session.spotifyID) {
+    if(req.session.spotifyID){
         return next()
     }
     return res.status(401).json({error: "You must be logged in to access this."})
@@ -287,7 +287,7 @@ async function fetchWebApi(endpoint, accessToken){
 			headers: { Authorization: `Bearer ${accessToken}` }
 		})
 		return await response.json()
-	} catch (error) {
+	} catch (error){
 		console.error("Error:", error)
 		res.status(500).json({ error: 'Internal server error' })
 	}
@@ -302,7 +302,7 @@ app.get('/api/me/profile', isAuthenticated, async (req, res) => {
 
 	const profile = await fetchWebApi('v1/me', accessToken)
 
-	if (!profile.display_name) {
+	if(!profile.display_name){
         return res.status(500).json({ error: "Unable to fetch Spotify display name" })
     }
 
@@ -322,12 +322,12 @@ app.get('/api/search-tracks/:track', isAuthenticated, async (req, res) => {
 	}
 
 	const track = req.params.track.replaceAll(" ", "+")
-	if (!track) {
+	if(!track){
 		return res.status(404).json({message: 'No track found'})
 	}
 
 	const track_search = await fetchWebApi(`v1/search?q=${track}&type=track&limit=10`, accessToken)
-	if (!track_search.tracks.items.length) {
+	if(!track_search.tracks.items.length){
 		return res.status(404).json({message: 'No tracks found'})
 	}
 
@@ -371,7 +371,7 @@ app.get('/api/me/top-tracks', async (req, res) => {
 		}))
 		console.log("Sent Tracks!")
 		res.json(tracks)
-	} catch (error) {
+	} catch (error){
 		console.error("Error fetching top tracks:", error)
 		res.status(500).json({ error: 'Internal server error' })
 	}
@@ -390,8 +390,8 @@ app.post('/api/playlists', isAuthenticated, (req, res) => {
 
     db.run(`INSERT INTO playlists (title, user_id, cover_image) VALUES (?, ?, ?)`, 
         [title, userID, imageBase64], 
-        function(err) {
-            if (err){
+        function(err){
+            if(err){
 				return res.status(500).json({ error: "Database error" })
 			}
             res.status(201).json({ id: this.lastID, title })
@@ -406,7 +406,7 @@ app.get('/api/playlists', isAuthenticated, (req, res) => {
     db.all(`SELECT * FROM playlists WHERE user_id = ?`, 
         [userID], 
         (err, row) => {
-            if (err || !row){
+            if(err || !row){
 				return res.status(500).json({ error: "Database error" })
 			}
             res.json(row)
@@ -421,11 +421,11 @@ app.delete('/api/playlists/:id', isAuthenticated, (req, res) => {
 
     db.run(`DELETE FROM playlists WHERE id = ? AND user_id = ?`, 
         [playlistID, userID], 
-        function(err) {
-            if (err){
+        function(err){
+            if(err){
 				return res.status(500).json({ error: "Database error" })
 			}
-            if (this.changes === 0){
+            if(this.changes === 0){
 				return res.status(403).json({error: "Unauthorized"})
 			}
 
@@ -444,13 +444,13 @@ app.post('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
     db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
         [playlistID, userID], 
         (err, playlist) => {
-            if (err) return res.status(500).json({error: "Database error"})
-            if (!playlist) return res.status(403).json({error: "Unauthorized"})
+            if(err) return res.status(500).json({error: "Database error"})
+            if(!playlist) return res.status(403).json({error: "Unauthorized"})
 
             db.run(`INSERT INTO tracks (name, artist, popularity, uri, playlist_id) VALUES (?, ?, ?, ?, ?)`, 
                 [name, artist, popularity, uri, playlistID], 
-                function(err) {
-                    if (err) return res.status(500).json({error: "Database error"})
+                function(err){
+                    if(err) return res.status(500).json({error: "Database error"})
                     res.status(201).json({id: this.lastID, name, artist})
                 }
             )
@@ -466,13 +466,13 @@ app.get('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
     db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
         [playlistID, userID], 
         (err, playlist) => {
-            if (err) return res.status(500).json({ error: "Database error" })
-            if (!playlist) return res.status(403).json({ error: "Unauthorized" })
+            if(err) return res.status(500).json({ error: "Database error" })
+            if(!playlist) return res.status(403).json({ error: "Unauthorized" })
 
             db.all(`SELECT * FROM tracks WHERE playlist_id = ?`, 
                 [playlistID], 
                 (err, tracks) => {
-                    if (err) return res.status(500).json({ error: "Database error" })
+                    if(err) return res.status(500).json({ error: "Database error" })
                     res.json(tracks)
                 }
             )
@@ -488,14 +488,14 @@ app.delete('/api/playlists/:playlistID/tracks/:trackID', isAuthenticated, (req, 
     db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
         [playlistID, userID], 
         (err, playlist) => {
-            if (err) return res.status(500).json({ error: "Database error" })
-            if (!playlist) return res.status(403).json({ error: "Unauthorized" })
+            if(err) return res.status(500).json({ error: "Database error" })
+            if(!playlist) return res.status(403).json({ error: "Unauthorized" })
 
             db.run(`DELETE FROM tracks WHERE id = ? AND playlist_id = ?`, 
                 [trackID, playlistID], 
-                function(err) {
-                    if (err) return res.status(500).json({ error: "Database error" })
-                    if (this.changes === 0) return res.status(404).json({ error: "Track not found" })
+                function(err){
+                    if(err) return res.status(500).json({ error: "Database error" })
+                    if(this.changes === 0) return res.status(404).json({ error: "Track not found" })
                     res.json({ message: "Track deleted" })
                 }
             )
@@ -547,7 +547,7 @@ app.post('/api/playlists/:id/export', isAuthenticated, async (req, res) => {
 		}
 		// getting tracks
 		const track_URIs = playlist.tracks.map(track => track.uri)
-		if (track_URIs.length === 0) {
+		if(track_URIs.length === 0){
 			return res.status(400).json({error: 'No valid track URIs'});
 		}
 
@@ -581,7 +581,7 @@ app.post('/api/playlists/:id/export', isAuthenticated, async (req, res) => {
 				body: playlist.cover_image
 			})
 
-			if (!image_upload_fetch.ok) {
+			if(!image_upload_fetch.ok){
 				console.warn("Failed to upload playlist image")
 			}
 		}
@@ -598,7 +598,7 @@ app.post('/api/playlists/:id/export', isAuthenticated, async (req, res) => {
 
 		const added_tracks = await add_tracks_fetch.json()
 
-		if (added_tracks.error) {
+		if(added_tracks.error){
 			return res.status(500).json({error: 'Failed to add tracks to Spotify playlist'})
 		}
 		return res.status(200).json({message: 'Playlist exported!', spotifyUrl: created_playlist.external_urls.spotify})
@@ -609,7 +609,7 @@ app.post('/api/playlists/:id/export', isAuthenticated, async (req, res) => {
 // Add tracks
 app.post('/api/playlists/:id/tracks', (req, res) => {
 	const playlist = playlists[req.params.id]
-	if (!playlist) {
+	if(!playlist){
 		return res.status(404).json({ message: 'No playlist found'})
 	}
 	const { name, artist } = req.body
@@ -621,11 +621,11 @@ app.post('/api/playlists/:id/tracks', (req, res) => {
 // Update track in playlist
 app.put('/api/playlists/:playlistId/tracks/:trackId', (req, res) => {
 	const playlist = playlists[req.params.playlistId]
-	if (!playlist) {
+	if(!playlist){
 		return res.status(404).json({ message: 'No playlist found'})
 	}
 	const track = playlist.tracks.find(t => t.id === req.params.trackId)
-	if (!track) {
+	if(!track){
 		return res.status(404).json({ message: 'No track found'})
 	}
 	track.name = req.body.name || track.name
@@ -636,11 +636,11 @@ app.put('/api/playlists/:playlistId/tracks/:trackId', (req, res) => {
 // Delete track from playlist
 app.delete('/api/playlists/:playlistId/tracks/:trackId', (req, res) => {
 	const playlist = playlists[req.params.playlistId]
-	if (!playlist) {
+	if(!playlist){
 		return res.status(404).json({ message: 'Playlist not found' })
 	}
 	const trackIndex = playlist.tracks.findIndex(t => t.id === req.params.trackId)
-	if (trackIndex === -1) {
+	if(trackIndex === -1){
 		return res.status(404).json({ message: 'Track not found' })
 	}
 	playlist.tracks.splice(trackIndex, 1)

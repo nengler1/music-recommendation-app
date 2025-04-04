@@ -51,7 +51,7 @@ function getTopArtists(){
         .then(data => data.json())
         .then(async songs => {
             const loggedIn = await checkLoginStatus()
-            if (loggedIn){
+            if(loggedIn){
                 if(!document.querySelector('.track-card')){
                     songs.forEach(song => {
                         const track = document.createElement('div')
@@ -83,29 +83,29 @@ function getTopArtists(){
 }
 
 // playlists
-let currentPlaylistID = null;
+let currentPlaylistID = null
 
-function renderPlaylistList(playlists) {
-    const list = document.getElementById("playlist-list");
-    list.innerHTML = "";
+function renderPlaylistList(playlists){
+    const list = document.getElementById("playlist-list")
+    list.innerHTML = ""
     playlists.forEach(playlist => {
-        const item = document.createElement("div");
-        const imageURL = `data:image/jpeg;base64,${playlist.cover_image}`;
+        const item = document.createElement("div")
+        const imageURL = `data:image/jpeg;base64,${playlist.cover_image}`
         item.innerHTML = `
             <img src="${imageURL}" alt="${playlist.title}">
             <h3>${playlist.title}</h3>
             <button class="delete-btn" onclick="deletePlaylist(${playlist.id})" id="del-playlist">X</button>
         `
-        item.classList.add("playlist-item");
-        item.onclick = () => showPlaylistDetails(playlist);
-        list.appendChild(item);
-    });
+        item.classList.add("playlist-item")
+        item.onclick = () => showPlaylistDetails(playlist)
+        list.appendChild(item)
+    })
 }
 
-function showPlaylistDetails(playlist) {
-    currentPlaylistID = playlist.id;
-    const details = document.getElementById("playlist-details");
-    const imageURL = `data:image/jpeg;base64,${playlist.cover_image}`;
+function showPlaylistDetails(playlist){
+    currentPlaylistID = playlist.id
+    const details = document.getElementById("playlist-details")
+    const imageURL = `data:image/jpeg;base64,${playlist.cover_image}`
 
     details.innerHTML = `
         <div id="playlist-title-details">
@@ -113,121 +113,123 @@ function showPlaylistDetails(playlist) {
             <h1>Title: ${playlist.title}</h1>
         </div>
         <div class="track-list" id="tracks-${playlist.id}"></div>
-    `;
+    `
 
-    getPlaylistTracks(playlist.id);
+    getPlaylistTracks(playlist.id)
 }
 
-async function createPlaylist(event) {
-    event.preventDefault();
-    const title = document.getElementById("title").value.trim();
-    const fileInput = document.getElementById("cover-image");
-    const file = fileInput.files[0];
+async function createPlaylist(event){
+    event.preventDefault()
+    const title = document.getElementById("title").value.trim()
+    const fileInput = document.getElementById("cover-image")
+    const file = fileInput.files[0]
 
-    if (!title || !file) return alert("Please provide title and image.");
+    if(!title || !file) return alert("Please provide title and image.")
 
-    const reader = new FileReader();
-    reader.onload = async function () {
-        const base64 = reader.result.split(",")[1];
+    const reader = new FileReader()
+    reader.onload = async function (){
+        const base64 = reader.result.split(",")[1]
 
         const res = await fetch("/api/playlists", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ title, imageBase64: base64 })
-        });
+        })
 
-        if (res.ok) {
-            listPlaylists();
-            document.getElementById("create-playlist-form").reset();
+        if(res.ok){
+            listPlaylists()
+            document.getElementById("create-playlist-form").reset()
         } else {
-            alert("Failed to create playlist.");
+            alert("Failed to create playlist.")
         }
-    };
+    }
 
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(file)
 }
 
-async function listPlaylists() {
+async function listPlaylists(){
     const res = await fetch("/api/playlists")
-    if (!res.ok) return;
+    if(!res.ok) return
 
     const playlists = await res.json()
     renderPlaylistList(playlists)
 }
 
-async function deletePlaylist(playlistID) {
-    if (!confirm("Are you sure you want to delete this playlist?")) return;
+async function deletePlaylist(playlistID){
+    if(!confirm("Are you sure you want to delete this playlist?")) return
 
     await fetch(`/api/playlists/${playlistID}`, {
         method: 'DELETE'
-    });
+    })
 
-    listPlaylists(); // refresh sidebar list
+    listPlaylists() // refresh sidebar list
 }
 
-async function getPlaylistTracks(id) {
-    const res = await fetch(`/api/playlists/${id}/tracks`);
-    const tracks = await res.json();
-    const container = document.getElementById(`tracks-${id}`);
+async function getPlaylistTracks(id){
+    const res = await fetch(`/api/playlists/${id}/tracks`)
+    const tracks = await res.json()
+    const container = document.getElementById(`tracks-${id}`)
 
     container.innerHTML = tracks.map(track => `
         <div>
             <p>${track.name} - ${track.artist}</p>
             <button class="delete-btn" onclick="deleteTrack('${id}', '${track.id}')" id="del-track">X</button>
         </div>
-    `).join("");
+    `).join("")
 }
 
-async function deleteTrack(playlistID, trackID) {
+async function deleteTrack(playlistID, trackID){
     await fetch(`/api/playlists/${playlistID}/tracks/${trackID}`, {
         method: 'DELETE'
-    });
-    getPlaylistTracks(playlistID);
+    })
+    getPlaylistTracks(playlistID)
 }
 
-async function searchSongs(event) {
-    event.preventDefault();
-    const query = document.getElementById("search-query").value.trim();
-    if (!query || !currentPlaylistID) return;
+async function searchSongs(event){
+    event.preventDefault()
+    const query = document.getElementById("search-query").value.trim()
+    if(!query || !currentPlaylistID) return
 
-    const res = await fetch(`/api/search-tracks/${encodeURIComponent(query)}`);
-    const songs = await res.json();
-    const resultsDiv = document.getElementById("search-results");
-    resultsDiv.innerHTML = "";
+    const res = await fetch(`/api/search-tracks/${encodeURIComponent(query)}`)
+    const songs = await res.json()
+    const resultsDiv = document.getElementById("search-results")
+    resultsDiv.innerHTML = ""
 
     songs.forEach(song => {
-        const div = document.createElement("div");
-        div.innerHTML = `${song.name} - ${song.artist}`;
-        const addBtn = document.createElement("button");
-        addBtn.textContent = "+";
-        addBtn.onclick = () => addSong(song);
-        div.appendChild(addBtn);
-        resultsDiv.appendChild(div);
-    });
+        const div = document.createElement("div")
+        div.innerHTML = `${song.name} - ${song.artist}`
+        const addBtn = document.createElement("button")
+        addBtn.textContent = "+"
+        addBtn.onclick = () => addSong(song)
+        div.appendChild(addBtn)
+        resultsDiv.appendChild(div)
+    })
 }
 
-async function addSong(song) {
-    if (!currentPlaylistID) return;
+async function addSong(song){
+    if(!currentPlaylistID) return
 
     await fetch(`/api/playlists/${currentPlaylistID}/tracks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(song)
-    });
+    })
 
-    getPlaylistTracks(currentPlaylistID);
+    getPlaylistTracks(currentPlaylistID)
 }
 
-async function exportCurrentPlaylist() {
-    if (!currentPlaylistID) return alert("Select a playlist first.");
-    const res = await fetch(`/api/playlists/${currentPlaylistID}/export`, { method: "POST" });
-    const result = await res.json();
+async function exportCurrentPlaylist(){
+    if(!currentPlaylistID) return alert("Select a playlist first.")
+    const res = await fetch(`/api/playlists/${currentPlaylistID}/export`, {
+        method: "POST"
+    })
+    const result = await res.json()
 
-    if (result.spotifyUrl) {
-        alert("Exported! Opening Spotify...");
-        window.open(result.spotifyUrl, '_blank');
+    if(result.spotifyUrl){
+        alert("Exported! Opening Spotify...")
+        window.open(result.spotifyUrl, '_blank')
     } else {
-        alert("Failed to export playlist.");
+        alert("Failed to export playlist.")
     }
 }
 
