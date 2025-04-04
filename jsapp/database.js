@@ -34,6 +34,7 @@ db.serialize(() => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
         user_id INTEGER,
+        cover_image TEXT,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
     `)

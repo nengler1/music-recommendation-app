@@ -183,7 +183,9 @@ app.get('/api/login', (req, res) => {
 		'user-read-private',
 		'user-top-read',
 		'user-read-recently-played',
-		'user-read-playback-position'
+		'user-read-playback-position',
+		'playlist-modify-public',
+		'playlist-modify-private',
 	]
 	res.redirect(spotifyAPI.createAuthorizeURL(scopes, null, true))
 })
@@ -368,15 +370,15 @@ app.get('/api/me/top-tracks', async (req, res) => {
 
 // create playlist
 app.post('/api/playlists', isAuthenticated, (req, res) => {
-	const {title} = req.body
+	const {title, imageBase64} = req.body
 	if(!title){
 		return res.status(400).json({ message: 'No playlist title'})
 	}
 
 	const userID = req.session.spotifyID;
 
-    db.run(`INSERT INTO playlists (title, user_id) VALUES (?, ?)`, 
-        [title, userID], 
+    db.run(`INSERT INTO playlists (title, user_id, cover_image) VALUES (?, ?, ?)`, 
+        [title, userID, imageBase64], 
         function(err) {
             if (err){
 				return res.status(500).json({ error: "Database error" })
@@ -392,11 +394,11 @@ app.get('/api/playlists', isAuthenticated, (req, res) => {
 
     db.all(`SELECT * FROM playlists WHERE user_id = ?`, 
         [userID], 
-        (err, playlists) => {
-            if (err){
+        (err, row) => {
+            if (err || !row){
 				return res.status(500).json({ error: "Database error" })
 			}
-            res.json(playlists)
+            res.json(row)
         }
     )
 })
@@ -465,13 +467,6 @@ app.post('/api/playlists/:id/tracks', isAuthenticated, (req, res) => {
     const playlistID = req.params.id
     const userID = req.session.spotifyID
 
-	console.log("NAME", name)
-	console.log("ARTIST", artist)
-	console.log("POPULARITY", popularity)
-	console.log("URI", uri)
-
-	console.log(req.body)
-
     db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
         [playlistID, userID], 
         (err, playlist) => {
@@ -532,6 +527,91 @@ app.delete('/api/playlists/:playlistID/tracks/:trackID', isAuthenticated, (req, 
             )
         }
     )
+})
+
+// get the users playlist when given their id and the playlist id from database
+const getUserPlaylist = (userID, playlistID, callback) => {
+	db.get(`SELECT * FROM playlists WHERE id = ? AND user_id = ?`, 
+        [playlistID, userID], 
+        (err, playlist) => {
+            if(err || !playlist){
+				callback(null)
+			}
+            if(this.changes === 0){
+				callback(null)
+			}
+
+			db.all(`SELECT * FROM tracks WHERE playlist_id = ?`,
+				[playlistID], 
+				(err2, tracks) => {
+					if(err2){
+						return res.status(500).json({error: "Database error: No tracks"})
+					}
+
+					playlist.tracks = tracks
+					callback(playlist)
+				}
+			)
+        }
+    )
+}
+
+// export playlist to Spotify
+app.post('/api/playlists/:id/export', isAuthenticated, async (req, res) => {
+	const accessToken = req.session.accessToken
+	if(!accessToken){
+		return res.status(401).json({ message: 'Not logged in'})
+	}
+
+	const playlistID = req.params.id
+    const userID = req.session.spotifyID
+
+	// querying playlists
+	getUserPlaylist(userID, playlistID, async (playlist) => {
+		if(!playlist){
+			return res.status(404).json({error: 'Playlist not found'})
+		}
+		// getting tracks
+		const track_URIs = playlist.tracks.map(track => track.uri)
+		if (track_URIs.length === 0) {
+			return res.status(400).json({error: 'No valid track URIs'});
+		}
+
+		// create playlist in Spotify
+		const create_playlist_fetch = await fetch('https://api.spotify.com/v1/me/playlists', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				name: playlist.title,
+				description: 'Created using Melofy',
+				public: false
+			})
+		})
+		const created_playlist = await create_playlist_fetch.json()
+		if(!created_playlist.id){
+			return res.status(500).json({error: 'Could not create Spotify playlist'})
+		}
+
+		// adding tracks to Spotfiy playlist
+		const add_tracks_fetch = await fetch(`https://api.spotify.com/v1/playlists/${created_playlist.id}/tracks`, {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({uris: track_URIs})
+		})
+
+		const added_tracks = await add_tracks_fetch.json()
+
+		if (added_tracks.error) {
+			return res.status(500).json({error: 'Failed to add tracks to Spotify playlist'})
+		}
+		return res.status(200).json({message: 'Playlist exported!', spotifyUrl: created_playlist.external_urls.spotify})
+	})
 })
 
 /*

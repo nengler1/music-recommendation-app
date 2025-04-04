@@ -20,12 +20,14 @@
         </div>
     </nav>
 
-    <h1>Create Playlist</h1>
     <div class="form-container">
-        <form onsubmit="createPlaylist(event)">
+        <form id="create-playlist-form" onsubmit="createPlaylist(event)">
             <label for="title">Title: </label>
-            <input name="title" id="title">
-            <input type="submit" value="Create Playlist" required>
+            <input name="title" id="title" required>
+
+            <label for="cover-image">Cover Image: </label>
+            <input type="file" accept="image/jpeg" id="cover-image" name="cover-image">
+            <button type="submit">Create Playlist</button>
         </form>
     </div>
 

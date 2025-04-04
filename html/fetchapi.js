@@ -102,10 +102,17 @@ async function listPlaylists(){
             container.innerHTML = "<p>You have no playlists yet.</p>"
             return
         }
-        container.innerHTML = playlists.map(playlist => `
+        container.innerHTML = playlists.map(playlist => {
+            const base64 = playlist.cover_image
+            const image_url = "data:image/jpeg;base64," + base64
+            const cover_image = `<img class="playlist-cover" src=${image_url} alt="${playlist.title}'s Cover Image">`
+
+            return `
             <div class="spotify-track">
                 <div class="track-card">
                     <h2>Title: ${playlist.title}</h2>
+                    ${cover_image}
+
                     <button class="delete" onclick="deletePlaylist('${playlist.id}')">Delete</button>
                     <button class="button" onclick="getPlaylistTracks('${playlist.id}')">View Tracks</button>
 
@@ -120,10 +127,28 @@ async function listPlaylists(){
                     </select>
                     <button onclick="addSong('${playlist.id}')">Add to Playlist</button>
 
+                    <!-- Track List -->
                     <div class="track-list" id="tracks-${playlist.id}"></div>
+
+                    <!-- Export playlist -->
+                    <button class="button" onclick="exportPlaylist('${playlist.id}')">Export to Spotify</button>
                 </div>
             </div>
-        `).join('')
+        `
+        }).join('')
+    })
+}
+
+function toBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+        reader.onload = () => {
+            // Remove the data:image/jpeg;base64, prefix
+            const base64 = reader.result.split(',')[1]
+            resolve(base64)
+        }
+        reader.onerror = error => reject(error)
     })
 }
 
@@ -131,11 +156,27 @@ async function createPlaylist(event){
     event.preventDefault()
     const formData = new FormData(event.target)
     const title = formData.get('title').toString().trim()
+    const fileInput = document.getElementById('cover-image')
+    const file = fileInput.files[0]
+
+    console.log(file)
+
+    if (!file || file.type !== 'image/jpeg') {
+        alert("Please upload a JPEG image.")
+        return
+    }
+
+    if (file.size > 256000) {
+        alert("Image must be under 256KB.")
+        return
+    }
+
+    const base64Image = await toBase64(file)
 
     await fetch('/api/playlists', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({title})
+        body: JSON.stringify({title, imageBase64: base64Image})
     })
     .then(async res => {
         if(res.ok){
@@ -240,6 +281,7 @@ async function getSong(event, playlistID){
             songOption.innerText = `${song.name} - ${song.artist}`
             dropdown.appendChild(songOption)
         })
+        getPlaylistTracks(playlistID)
     }).catch(error => {
         console.error("Error fetching songs:", error)
     })
@@ -285,6 +327,21 @@ async function deleteTrack(playlistID, trackID){
     })
 
     getPlaylistTracks(playlistID)
+}
+
+async function exportPlaylist(id) {
+    const res = await fetch(`/api/playlists/${id}/export`, {
+        method: 'POST'
+    })
+
+    const result = await res.json()
+    console.log(result)
+    if (result.spotifyUrl) {
+        alert("Playlist exported! Opening Spotify...")
+        window.open(result.spotifyUrl, '_blank')
+    } else {
+        alert("Error exporting playlist: " + (result.error || "Unknown error"))
+    }
 }
 
 // pre reqs

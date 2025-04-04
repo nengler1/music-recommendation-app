@@ -206,7 +206,21 @@ input[type="submit"]:hover, button:hover {
     background-color: #093E48; /* Dark border */
 }
 
+input[type="file"] {
+    color: rgb(0, 0, 0); /* or any visible color */
+    background-color: white;
+    width: 100%;
+}
+
 /* Playlist Styling */
+.playlist-cover {
+    width: 300px;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
 .spotify-track {
     display: flex;
     flex-wrap: wrap;
