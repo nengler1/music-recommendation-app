@@ -110,8 +110,8 @@ async function listPlaylists(){
             return `
             <div class="spotify-track">
                 <div class="track-card">
-                    <h2>Title: ${playlist.title}</h2>
                     ${cover_image}
+                    <h2>Title: ${playlist.title}</h2>
 
                     <button class="delete" onclick="deletePlaylist('${playlist.id}')">Delete</button>
                     <button class="button" onclick="getPlaylistTracks('${playlist.id}')">View Tracks</button>
@@ -159,17 +159,16 @@ async function createPlaylist(event){
     const fileInput = document.getElementById('cover-image')
     const file = fileInput.files[0]
 
-    console.log(file)
+    if (file.size > 2000000) {
+        alert("Image must be under 2MB.")
+        return
+    }
 
     if (!file || file.type !== 'image/jpeg') {
         alert("Please upload a JPEG image.")
         return
     }
 
-    if (file.size > 256000) {
-        alert("Image must be under 256KB.")
-        return
-    }
 
     const base64Image = await toBase64(file)
 

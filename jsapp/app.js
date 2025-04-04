@@ -20,10 +20,21 @@ app.use(session({
 const db = require('./database')
 
 // parsing "application/x-www-form-urlencoded"
-app.use(bodyParser.urlencoded({ extended: true }))
-app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended: true, limit: '2mb' }))
+app.use(bodyParser.json({limit: '2mb'}))
 
 app.use(express.json())
+
+app.use((req, res, next) => {
+    const contentLength = parseInt(req.headers['content-length'] || '0')
+    const MAX_SIZE = 2048 * 1024 // 1MB
+
+    if (contentLength > MAX_SIZE) {
+        return res.status(413).json({error: 'Image too large. Max 2MB allowed.'})
+    }
+
+    next()
+})
 
 // Admin Features
 const { authenticate, hashPassword } = require('./users') // hashing passwords in users.js
