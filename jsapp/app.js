@@ -326,7 +326,7 @@ app.get('/api/search-tracks/:track', isAuthenticated, async (req, res) => {
 		return res.status(404).json({message: 'No track found'})
 	}
 
-	const track_search = await fetchWebApi(`v1/search?q=${track}&type=track&limit=5`, accessToken)
+	const track_search = await fetchWebApi(`v1/search?q=${track}&type=track&limit=10`, accessToken)
 	if (!track_search.tracks.items.length) {
 		return res.status(404).json({message: 'No tracks found'})
 	}
@@ -433,43 +433,6 @@ app.delete('/api/playlists/:id', isAuthenticated, (req, res) => {
         }
     )
 })
-
-/*
-// get specific playlist
-app.get('/api/playlists/:id', (req, res) => {
-	const playlist = playlists[req.params.id]
-	if(!playlist){
-		return res.status(404).json({ message: 'No playlist found'})
-	}
-
-	res.json(playlist)
-})
-
-
-// update playlist
-app.put('/api/playlists/:id', (req, res) => {
-	const playlist = playlists[req.params.id]
-	if(!playlist){
-		return res.status(404).json({ message: 'No playlist found'})
-	}
-
-	new_title = req.body.title || playlist.title
-	playlist.title = new_title
-	res.json(playlist)
-})
-
-// delete playlist
-app.delete('/api/playlists/:id', (req, res) => {
-	const {id} = req.params
-	if(!playlists[id]){
-		return res.status(404).json({ message: 'No playlist found'})
-	}
-
-	delete playlists[id]
-	res.status(204).json()
-})
-*/
-
 // -- Tracks w/ in playlists --
 
 // add a track to playlist
@@ -604,6 +567,23 @@ app.post('/api/playlists/:id/export', isAuthenticated, async (req, res) => {
 		const created_playlist = await create_playlist_fetch.json()
 		if(!created_playlist.id){
 			return res.status(500).json({error: 'Could not create Spotify playlist'})
+		}
+
+		// uploading user cover image
+		if(playlist.cover_image){
+			console.log(accessToken)
+			const image_upload_fetch = await fetch(`https://api.spotify.com/v1/playlists/${created_playlist.id}/images`, {
+				method: 'PUT',
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					'Content-Type': 'image/jpeg'
+				},
+				body: playlist.cover_image
+			})
+
+			if (!image_upload_fetch.ok) {
+				console.warn("Failed to upload playlist image")
+			}
 		}
 
 		// adding tracks to Spotfiy playlist

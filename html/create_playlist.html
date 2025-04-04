@@ -20,20 +20,40 @@
         </div>
     </nav>
 
-    <div class="form-container">
-        <form id="create-playlist-form" onsubmit="createPlaylist(event)">
-            <label for="title">Title: </label>
-            <input name="title" id="title" required>
+    <main class="dashboard">
+        <!-- Left Panel: Playlist creation and existing playlists -->
+        <section class="left-panel">
+            <form id="create-playlist-form" onsubmit="createPlaylist(event)">
+                <h3>Create New Playlist</h3>
+                <label for="title">Title:</label>
+                <input name="title" id="title" required>
+                <label for="cover-image">Cover Image:</label>
+                <input type="file" accept="image/jpeg" id="cover-image" name="cover-image">
+                <button type="submit">Create</button>
+            </form>
+            <h3 id="playlist-loc">Playlists:</h3><br>
+            <div id="playlist-list"></div>
+        </section>
 
-            <label for="cover-image">Cover Image: </label>
-            <input type="file" accept="image/jpeg" id="cover-image" name="cover-image">
-            <button type="submit">Create Playlist</button>
-        </form>
-    </div>
+        <!-- Middle Panel: Playlist Details -->
+        <section class="middle-panel">
+            <div id="playlist-details">
+                <p>Select a playlist to view its details.</p>
+            </div>
+        </section>
 
-    <div id="playlists">
+        <!-- Right Panel: Search and export -->
+        <section class="right-panel">
+            <form id="search-form" onsubmit="searchSongs(event)">
+                <label for="search-query" id="search-title">Search:</label>
+                <input type="text" id="search-query" placeholder="Enter a Song or Artist">
+                <button type="submit">Search</button>
+            </form>
+            <div id="search-results"></div>
+            <button id="export-button" onclick="exportCurrentPlaylist()">Export to Spotify</button>
+        </section>
+    </main>
 
-    </div>
 
     <script src="fetchapi.js"></script>
 </body>
