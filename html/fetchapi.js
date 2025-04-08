@@ -51,8 +51,7 @@ function getTopArtists(){
         .then(data => data.json())
         .then(async songs => {
             const loggedIn = await checkLoginStatus()
-            console.log("TLOGGED IN:", loggedIn)
-            if (loggedIn){
+            if(loggedIn){
                 if(!document.querySelector('.track-card')){
                     songs.forEach(song => {
                         const track = document.createElement('div')
@@ -84,201 +83,156 @@ function getTopArtists(){
 }
 
 // playlists
+let currentPlaylistID = null
 
-async function listPlaylists(){
-    await fetch('/api/playlists', {
-        method: 'GET',
+function renderPlaylistList(playlists){
+    const list = document.getElementById("playlist-list")
+    list.innerHTML = ""
+    playlists.forEach(playlist => {
+        const item = document.createElement("div")
+        const imageURL = `data:image/jpeg;base64,${playlist.cover_image}`
+        item.innerHTML = `
+            <img src="${imageURL}" alt="${playlist.title}">
+            <h3>${playlist.title}</h3>
+            <button class="delete-btn" onclick="deletePlaylist(${playlist.id})" id="del-playlist">X</button>
+        `
+        item.classList.add("playlist-item")
+        item.onclick = () => showPlaylistDetails(playlist)
+        list.appendChild(item)
     })
-    .then(async res => {
-        if(res.status === 401) {
-            document.getElementById('playlists').innerHTML = "<p>You need to log in to view your playlists.</p>"
-            return
-        }
+}
 
-        const playlists = await res.json()
-        const container = document.getElementById('playlists')
+function showPlaylistDetails(playlist){
+    currentPlaylistID = playlist.id
+    const details = document.getElementById("playlist-details")
+    const imageURL = `data:image/jpeg;base64,${playlist.cover_image}`
 
-        if(playlists.length === 0){
-            container.innerHTML = "<p>You have no playlists yet.</p>"
-            return
-        }
-        container.innerHTML = playlists.map(playlist => `
-            <div class="spotify-track">
-                <div class="track-card">
-                    <h2>Title: ${playlist.title}</h2>
-                    <button class="delete" onclick="deletePlaylist('${playlist.id}')">Delete</button>
-                    <button class="button" onclick="getPlaylistTracks('${playlist.id}')">View Tracks</button>
+    details.innerHTML = `
+        <div id="playlist-title-details">
+            <img src="${imageURL}" alt="${playlist.title}">
+            <h1>Title: ${playlist.title}</h1>
+        </div>
+        <div class="track-list" id="tracks-${playlist.id}"></div>
+    `
 
-                    <!-- Search and add song -->
-                    <form onsubmit="getSong(event, '${playlist.id}')">
-                        <input type="text" placeholder="Search for a song..." name="search-track" required />
-                        <button type="submit">Search</button>
-                    </form>
-
-                    <select id="song-dropdown-${playlist.id}">
-                        <option value="">Select a song</option>
-                    </select>
-                    <button onclick="addSong('${playlist.id}')">Add to Playlist</button>
-
-                    <div class="track-list" id="tracks-${playlist.id}"></div>
-                </div>
-            </div>
-        `).join('')
-    })
+    getPlaylistTracks(playlist.id)
 }
 
 async function createPlaylist(event){
     event.preventDefault()
-    const formData = new FormData(event.target)
-    const title = formData.get('title').toString().trim()
+    const title = document.getElementById("title").value.trim()
+    const fileInput = document.getElementById("cover-image")
+    const file = fileInput.files[0]
 
-    await fetch('/api/playlists', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({title})
-    })
-    .then(async res => {
+    if(!title || !file) return alert("Please provide title and image.")
+
+    const reader = new FileReader()
+    reader.onload = async function (){
+        const base64 = reader.result.split(",")[1]
+
+        const res = await fetch("/api/playlists", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ title, imageBase64: base64 })
+        })
+
         if(res.ok){
             listPlaylists()
+            document.getElementById("create-playlist-form").reset()
         } else {
             alert("Failed to create playlist.")
         }
-    })
-}
-
-/*
-async function getPlaylist(id){
-    await fetch(`/api/playlists/${id}`, {
-        method: 'GET'
-    }).then(async res => {
-            const playlist = await res.json()
-            console.log(playlist)
-            
-            const tracksDiv = document.getElementById(`tracks-${id}`)
-            if(playlist.tracks.length === 0){
-                tracksDiv.innerHTML = "<p>No tracks in playlist</p>"
-            } else {
-                tracksDiv.innerHTML = playlist.tracks.map(track => `
-                    <div>
-                        ${track.name} - ${track.artist}
-                        <button class="delete" onclick="deleteTrack('${id}', '${track.id}')">Delete Track</button>
-                    <div>
-                `).join('')
-            }
-        })
-}
-*/
-
-// Fetch and Display Tracks in a Playlist
-async function getPlaylistTracks(playlistID) {
-    await fetch(`/api/playlists/${playlistID}/tracks`)
-    .then(async res => {
-        const tracks = await res.json()
-        const trackList = document.getElementById(`tracks-${playlistID}`)
-
-        if (tracks.length === 0) {
-            trackList.innerHTML = "<p>No tracks in this playlist.</p>"
-            return
-        }
-
-        trackList.innerHTML = tracks.map(track => `
-            <div>${track.name} - ${track.artist}
-                <button class="delete" onclick="deleteTrack('${playlistID}', '${track.id}')">Delete</button>
-            </div>
-        `).join('')
-    })
-}
-
-/*
-async function updatePlaylist(event){
-    event.preventDefault()
-    const formData = new FormData(event.target)
-    const title = formData.get('title').toString().trim()
-
-    await fetch('/api/playlists', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({title})
-    }).then(async res => {
-            const data = await res.json()
-            console.log(data)
-            listPlaylists()
-        })
-}
-*/
-
-async function deletePlaylist(id){
-    await fetch(`/api/playlists/${id}`, {
-        method: 'DELETE',
-    })
-    listPlaylists()
-}
-
-// tracks
-
-async function getSong(event, playlistID){
-    event.preventDefault()
-    const formData = new FormData(event.target)
-    const search = formData.get('search-track').toString().trim()
-
-    await fetch(`/api/search-tracks/${encodeURIComponent(search)}`, {
-        method: 'GET',
-    })
-    .then(async res => {
-        if (!res.ok) {
-            console.error("Error fetching songs")
-            return
-        }
-
-        const songs = await res.json()
-        const dropdown = document.getElementById(`song-dropdown-${playlistID}`)
-        dropdown.innerHTML = '<option value="">Select a song</option>'
-
-        songs.forEach(song => {
-            const songOption = document.createElement("option")
-            songOption.value = JSON.stringify(song)
-            songOption.innerText = `${song.name} - ${song.artist}`
-            dropdown.appendChild(songOption)
-        })
-    }).catch(error => {
-        console.error("Error fetching songs:", error)
-    })
-}
-
-async function addSong(playlistID) {
-    const dropdown = document.getElementById(`song-dropdown-${playlistID}`)
-    const selectedOption = dropdown.options[dropdown.selectedIndex]
-
-    if(!selectedOption.value) {
-        alert("Please select a song first!")
-        return
     }
 
-    const song = JSON.parse(selectedOption.value)
+    reader.readAsDataURL(file)
+}
 
-    await fetch(`/api/playlists/${playlistID}/tracks`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name: song.name, artist: song.artist})
+async function listPlaylists(){
+    const res = await fetch("/api/playlists")
+    if(!res.ok) return
+
+    const playlists = await res.json()
+    renderPlaylistList(playlists)
+}
+
+async function deletePlaylist(playlistID){
+    if(!confirm("Are you sure you want to delete this playlist?")) return
+
+    await fetch(`/api/playlists/${playlistID}`, {
+        method: 'DELETE'
     })
-    .then(res => {
-        if(res.ok) {
-            getPlaylistTracks(playlistID)
-        } else {
-            alert("Error adding song to playlist")
-        }
-    }).catch(error => {
-        console.error("Error:", error)
-    })
+
+    listPlaylists() // refresh sidebar list
+}
+
+async function getPlaylistTracks(id){
+    const res = await fetch(`/api/playlists/${id}/tracks`)
+    const tracks = await res.json()
+    const container = document.getElementById(`tracks-${id}`)
+
+    container.innerHTML = tracks.map(track => `
+        <div>
+            <p>${track.name} - ${track.artist}</p>
+            <button class="delete-btn" onclick="deleteTrack('${id}', '${track.id}')" id="del-track">X</button>
+        </div>
+    `).join("")
 }
 
 async function deleteTrack(playlistID, trackID){
     await fetch(`/api/playlists/${playlistID}/tracks/${trackID}`, {
         method: 'DELETE'
     })
-
     getPlaylistTracks(playlistID)
 }
+
+async function searchSongs(event){
+    event.preventDefault()
+    const query = document.getElementById("search-query").value.trim()
+    if(!query || !currentPlaylistID) return
+
+    const res = await fetch(`/api/search-tracks/${encodeURIComponent(query)}`)
+    const songs = await res.json()
+    const resultsDiv = document.getElementById("search-results")
+    resultsDiv.innerHTML = ""
+
+    songs.forEach(song => {
+        const div = document.createElement("div")
+        div.innerHTML = `${song.name} - ${song.artist}`
+        const addBtn = document.createElement("button")
+        addBtn.textContent = "+"
+        addBtn.onclick = () => addSong(song)
+        div.appendChild(addBtn)
+        resultsDiv.appendChild(div)
+    })
+}
+
+async function addSong(song){
+    if(!currentPlaylistID) return
+
+    await fetch(`/api/playlists/${currentPlaylistID}/tracks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(song)
+    })
+
+    getPlaylistTracks(currentPlaylistID)
+}
+
+async function exportCurrentPlaylist(){
+    if(!currentPlaylistID) return alert("Select a playlist first.")
+    const res = await fetch(`/api/playlists/${currentPlaylistID}/export`, {
+        method: "POST"
+    })
+    const result = await res.json()
+
+    if(result.spotifyUrl){
+        alert("Exported! Opening Spotify...")
+        window.open(result.spotifyUrl, '_blank')
+    } else {
+        alert("Failed to export playlist.")
+    }
+}
+
 
 // pre reqs
 changeLogin()
