@@ -50,6 +50,18 @@ db.serialize(() => {
         FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
     );
     `)
+
+    //saved tracks
+    db.run(`CREATE TABLE IF NOT EXISTS saved_tracks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        artist TEXT NOT NULL,
+        uri TEXT UNIQUE,
+        popularity INTEGER,
+        album_image TEXT
+    );
+    `)
 })
 
 module.exports = db

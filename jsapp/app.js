@@ -193,6 +193,7 @@ app.get('/api/login', (req, res) => {
 	const scopes = [
 		'user-read-private',
 		'user-top-read',
+		'user-library-read',
 		'user-read-recently-played',
 		'user-read-playback-position',
 		'playlist-modify-public',
@@ -374,6 +375,80 @@ app.get('/api/me/top-tracks', async (req, res) => {
 	} catch (error){
 		console.error("Error fetching top tracks:", error)
 		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+app.get('/api/me/saved-tracks', isAuthenticated, async (req, res) => {
+	const accessToken = req.session.accessToken
+	const userID = req.session.spotifyID
+	if(!accessToken || !userID){
+		return res.status(401).json({message: 'Not logged in'})
+	}
+
+	const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+	const all_tracks = []
+	let offset = 0
+	let finished = false
+
+	try {
+		while(!finished){
+			const response = await fetch(`https://api.spotify.com/v1/me/tracks?limit=50&offset=${offset}`, {
+				headers: { Authorization: `Bearer ${accessToken}` }
+			  })
+			
+			if(response.status === 429){
+				const retry = parseInt(response.headers.get('Retry-After') || '1') * 1000
+				console.log(`Rate limited. Retrying in ${retry / 1000} seconds...`)
+				await delay(retry)
+				continue
+			}
+			const data = await response.json()
+
+			console.log(data)
+
+			if (!data.items || data.items.length === 0){
+				break
+			}
+
+			data.items.forEach(item => {
+				const track = item.track
+				all_tracks.push({
+					name: track.name,
+					artist: track.artists.map(a => a.name).join(", "),
+					uri: track.uri,
+					popularity: track.popularity,
+					album_image: track.album.images[0]?.url || '',
+				})
+			})
+
+			offset += 50
+			finished = data.items.length < 50
+
+			await delay(1000) // 1 second
+		}
+
+		const saved_tracks_db = db.prepare(`
+			INSERT OR IGNORE INTO saved_tracks (user_id, name, artist, uri, popularity, album_image) 
+			VALUES (?, ?, ?, ?, ?, ?)
+		`)
+
+		for(const track of all_tracks){
+			saved_tracks_db.run([
+				userID,
+				track.name,
+				track.artist,
+				track.uri,
+				track.popularity,
+				track.album_image
+			])
+		}
+
+		res.json({message: `Stored ${all_tracks.length} liked tracks`})
+
+	} catch(err){
+		console.error('Failed to fetch saved tracks:', err)
+		res.status(500).json({error: 'Failed to fetch saved tracks'})
 	}
 })
 
