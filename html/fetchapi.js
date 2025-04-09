@@ -23,12 +23,39 @@ async function changeLogin(){
         create_playlist.textContent = 'Create Playlist'
 
         navbar.appendChild(create_playlist)
+
+        const sync_songs = document.createElement('button')
+        sync_songs.innerText = 'Sync Your Songs'
+        sync_songs.classList.add("nav-link-btn")
+
+        const spinner = document.createElement('div')
+        spinner.classList.add("spinner")
+        
+        sync_songs.onclick = () => {
+            spinner.style.display = 'block'
+            syncSongs(spinner)
+        }
+
+        navbar.appendChild(sync_songs)
+        navbar.appendChild(spinner)
     } else {
         authButton.innerText = 'Log in'
         authButton.onclick = () => {
             window.location.href = '/api/login'
         }
     }
+}
+
+async function syncSongs(element){
+    try {
+        const res = await fetch('/api/me/saved-tracks')
+        const data = await res.json()
+        alert(data.message)
+    } catch(err){
+        alert("Failed to sync liked songs:", err)
+    }
+
+    element.style.display = 'none'
 }
 
 async function getProfile(){
