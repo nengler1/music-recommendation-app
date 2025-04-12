@@ -393,17 +393,18 @@ app.get('/api/me/saved-tracks', isAuthenticated, async (req, res) => {
 
 	try {
 		while(!finished){
-			const response = await fetch(`https://api.spotify.com/v1/me/tracks?limit=50&offset=${offset}`, {
+			// Spotify
+			const sp_res = await fetch(`https://api.spotify.com/v1/me/tracks?limit=50&offset=${offset}`, {
 				headers: { Authorization: `Bearer ${accessToken}` }
 			  })
 			
-			if(response.status === 429){
-				const retry = parseInt(response.headers.get('Retry-After') || '1') * 1000
+			if(sp_res.status === 429){
+				const retry = parseInt(sp_res.headers.get('Retry-After') || '1') * 1000
 				console.log(`Rate limited. Retrying in ${retry / 1000} seconds...`)
 				await delay(retry)
 				continue
 			}
-			const data = await response.json()
+			const data = await sp_res.json()
 
 			console.log(data)
 
@@ -411,13 +412,44 @@ app.get('/api/me/saved-tracks', isAuthenticated, async (req, res) => {
 				break
 			}
 
-			data.items.forEach(item => {
+			data.items.forEach(async item => {
 				const track = item.track
+				const artists = track.artists.map(a => a.name).join(", ")
+				const artist_nospaces = artists.replaceAll(" ", "+")
+				const track_nospaces = track.name.replaceAll(" ", "+")
+
+				const lfm_res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${process.env.LFM_API_KEY}&artist=${artist_nospaces}&track=${track_nospaces}&format=json`)
+				await delay(100)
+				let lfm_data = await lfm_res.json()
+
+				if(lfm_data.error){
+					lfm_data.track = {toptags: {tag: []}}
+					if(lfm_data.error === 29){
+						console.log("message:", lfm_data.message)
+					}
+				}
+				const tags = lfm_data.track.toptags.tag.map(tag => tag.name).join(", ")
+
+				if(!lfm_data.track.mbid){
+					lfm_data.track.mbid = ''
+				}
+				const mbid = lfm_data.track.mbid
+
+				const listeners = lfm_data.track.listeners
+				const playcount = lfm_data.track.playcount
+
+				console.log(`Artist - Track: ${artists} - ${track.name}; Tags:`, tags)
+				console.log("MBID:", mbid)
+
 				all_tracks.push({
 					name: track.name,
-					artist: track.artists.map(a => a.name).join(", "),
+					artist: artists,
 					uri: track.uri,
 					popularity: track.popularity,
+					tags: tags,
+					mbid: mbid,
+					listeners: listeners,
+					playcount: playcount,
 					album_image: track.album.images[0]?.url || '',
 				})
 			})
@@ -425,12 +457,12 @@ app.get('/api/me/saved-tracks', isAuthenticated, async (req, res) => {
 			offset += 50
 			finished = data.items.length < 50
 
-			await delay(1000) // 1 second
+			await delay(2000) // 2 seconds
 		}
 
 		const saved_tracks_db = db.prepare(`
-			INSERT OR IGNORE INTO saved_tracks (user_id, name, artist, uri, popularity, album_image) 
-			VALUES (?, ?, ?, ?, ?, ?)
+			INSERT OR IGNORE INTO saved_tracks (user_id, name, artist, uri, popularity, tags, mbid, listeners, playcount, album_image) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`)
 
 		for(const track of all_tracks){
@@ -440,6 +472,10 @@ app.get('/api/me/saved-tracks', isAuthenticated, async (req, res) => {
 				track.artist,
 				track.uri,
 				track.popularity,
+				track.tags,
+				track.mbid,
+				track.listeners,
+				track.playcount,
 				track.album_image
 			])
 		}

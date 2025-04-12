@@ -59,6 +59,10 @@ db.serialize(() => {
         artist TEXT NOT NULL,
         uri TEXT UNIQUE,
         popularity INTEGER,
+        tags TEXT,
+        mbid TEXT,
+        listeners INTEGER,
+        playcount INTEGER,
         album_image TEXT
     );
     `)
